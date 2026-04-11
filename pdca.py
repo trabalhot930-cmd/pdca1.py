@@ -24,7 +24,7 @@ linhas = [
     "🚩 Evidência / Status"
 ]
 
-# CSS para padronizar altura
+# CSS global para padronizar altura e evitar quebra
 st.markdown("""
 <style>
 textarea {
@@ -33,20 +33,24 @@ textarea {
 </style>
 """, unsafe_allow_html=True)
 
+# Criar colunas
 cols = st.columns(len(colunas))
 
 for i, col_info in enumerate(colunas):
     with cols[i]:
-        # Cabeçalho
+        # Cabeçalho sem quebra de linha
         st.markdown(f"""
             <div style="
                 background-color: {col_info['cor']};
-                padding: 12px;
+                padding: 10px;
                 border-radius: 10px 10px 0 0;
                 text-align: center;
                 color: white;
                 font-weight: bold;
-                font-size: 16px;">
+                font-size: 14px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;">
                 {col_info['nome']}
             </div>
         """, unsafe_allow_html=True)
@@ -55,7 +59,7 @@ for i, col_info in enumerate(colunas):
         for j, titulo_linha in enumerate(linhas):
             key_id = f"cell_{i}_{j}"
 
-            # Label
+            # Label da célula
             st.markdown(f"""
                 <div style="
                     background-color: #f4f4f4;
@@ -67,7 +71,7 @@ for i, col_info in enumerate(colunas):
                 </div>
             """, unsafe_allow_html=True)
 
-            # Campo
+            # Campo de entrada
             st.text_area(
                 label="",
                 key=key_id,
@@ -76,6 +80,8 @@ for i, col_info in enumerate(colunas):
             )
 
 st.markdown("---")
+
+st.success("✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua")
 
 st.success(
     "✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua"
