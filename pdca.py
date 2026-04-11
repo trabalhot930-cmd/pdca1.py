@@ -1,21 +1,20 @@
 import streamlit as st
 
-# Configuração para usar a tela toda
+# Configuração da página
 st.set_page_config(layout="wide", page_title="PDCA Controle de Acesso")
 
 st.title("🔄 PDCA de Controle de Acesso - Gestão de Segurança")
 st.markdown("---")
 
-# Definição das Colunas (7) e Linhas (4)
-# Agrupadas por cores conforme seu pedido
+# Colunas (PDCA)
 colunas = [
-    {"nome": "1. Contexto (P)", "cor": "#1E88E5"},  # Azul
-    {"nome": "2. Liderança (P)", "cor": "#1E88E5"}, # Azul
-    {"nome": "3. Planejamento (P)", "cor": "#1E88E5"}, # Azul
-    {"nome": "4. Suporte (D)", "cor": "#E53935"},   # Vermelho
-    {"nome": "5. Operação (D)", "cor": "#E53935"},  # Vermelho
-    {"nome": "6. Avaliação (C)", "cor": "#43A047"}, # Verde
-    {"nome": "7. Melhoria (A)", "cor": "#FB8C00"}   # Laranja/Ajuste
+    {"nome": "1. Contexto (P)", "cor": "#1E88E5"},
+    {"nome": "2. Liderança (P)", "cor": "#1E88E5"},
+    {"nome": "3. Planejamento (P)", "cor": "#1E88E5"},
+    {"nome": "4. Suporte (D)", "cor": "#E53935"},
+    {"nome": "5. Operação (D)", "cor": "#E53935"},
+    {"nome": "6. Avaliação (C)", "cor": "#43A047"},
+    {"nome": "7. Melhoria (A)", "cor": "#FB8C00"}
 ]
 
 linhas = [
@@ -25,34 +24,59 @@ linhas = [
     "🚩 Evidência / Status"
 ]
 
-# Criando o layout
-cols = st.columns(7)
+# CSS para padronizar altura
+st.markdown("""
+<style>
+textarea {
+    height: 120px !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+cols = st.columns(len(colunas))
 
 for i, col_info in enumerate(colunas):
     with cols[i]:
-        # Cabeçalho da Coluna com a cor específica
+        # Cabeçalho
         st.markdown(f"""
-            <div style="background-color: {col_info['cor']}; padding: 15px; border-radius: 10px 10px 0px 0px; border: 1px solid #212121;">
-                <h3 style="color: white; text-align: center; margin: 0; font-size: 18px; font-weight: bold;">
-                    {col_info['nome']}
-                </h3>
+            <div style="
+                background-color: {col_info['cor']};
+                padding: 12px;
+                border-radius: 10px 10px 0 0;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                font-size: 16px;">
+                {col_info['nome']}
             </div>
         """, unsafe_allow_html=True)
-        
-        # Criando as 4 linhas para cada coluna
+
+        # Linhas
         for j, titulo_linha in enumerate(linhas):
-            # ID único para cada campo de texto
             key_id = f"cell_{i}_{j}"
-            
-            # Container para a célula
+
+            # Label
             st.markdown(f"""
-                <div style="background-color: #f9f9f9; padding: 5px; border-left: 4px solid {col_info['cor']}; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;">
-                    <label style="font-size: 11px; font-weight: bold; color: {col_info['cor']};">{titulo_linha}</label>
+                <div style="
+                    background-color: #f4f4f4;
+                    padding: 6px;
+                    border-left: 5px solid {col_info['cor']};
+                    font-size: 12px;
+                    font-weight: bold;">
+                    {titulo_linha}
                 </div>
             """, unsafe_allow_html=True)
-            
-            # Campo para você digitar as informações reais da Usina
-            st.text_area(label=titulo_linha, label_visibility="collapsed", height=100, key=key_id, placeholder="Digite aqui...")
+
+            # Campo
+            st.text_area(
+                label="",
+                key=key_id,
+                placeholder="Digite aqui...",
+                label_visibility="collapsed"
+            )
 
 st.markdown("---")
-st.success("✅ Dica: O P (Plan) foca na estratégia, o D (Do) na operação técnica, o C (Check) na auditoria via Power BI e o A (Act) na melhoria contínua.")
+
+st.success(
+    "✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua"
+)
