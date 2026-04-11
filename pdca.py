@@ -1,58 +1,58 @@
 import streamlit as st
 
-# Configuração da página para usar o máximo de espaço
+# Configuração para usar a tela toda
 st.set_page_config(layout="wide", page_title="PDCA Controle de Acesso")
 
-st.title("🔄 Matriz PDCA de Controle de Acesso")
+st.title("🔄 PDCA de Controle de Acesso - Gestão de Segurança")
 st.markdown("---")
 
-# Definição das 7 Colunas e 4 Linhas
+# Definição das Colunas (7) e Linhas (4)
+# Agrupadas por cores conforme seu pedido
 colunas = [
-    "1. Contexto (P)", "2. Liderança (P)", "3. Planejamento (P)", 
-    "4. Suporte (D)", "5. Operação (D)", "6. Avaliação (C)", "7. Melhoria (A)"
+    {"nome": "1. Contexto (P)", "cor": "#1E88E5"},  # Azul
+    {"nome": "2. Liderança (P)", "cor": "#1E88E5"}, # Azul
+    {"nome": "3. Planejamento (P)", "cor": "#1E88E5"}, # Azul
+    {"nome": "4. Suporte (D)", "cor": "#E53935"},   # Vermelho
+    {"nome": "5. Operação (D)", "cor": "#E53935"},  # Vermelho
+    {"nome": "6. Avaliação (C)", "cor": "#43A047"}, # Verde
+    {"nome": "7. Melhoria (A)", "cor": "#FB8C00"}   # Laranja/Ajuste
 ]
 
 linhas = [
     "🎯 Objetivo Estratégico",
     "⚙️ Ação Técnica (TI/OT)",
     "📊 Indicador (KPI)",
-    "🚩 Status/Responsável"
+    "🚩 Evidência / Status"
 ]
 
-# Conteúdos sugeridos para preencher a matriz (exemplo focado na Usina)
-# Você pode transformar isso em inputs de texto depois
-conteudo_matriz = {
-    (0,0): "Definir perímetro de Belo Monte", (0,1): "Política de Acesso aprovada", (0,2): "Análise de Riscos de Invasão",
-    (0,3): "Recursos e Infra de Redes", (0,4): "Execução do Controle Físico", (0,5): "Auditoria de Logs Mensal", (0,6): "Correção de vulnerabilidades",
-    # ... adicionei aqui uma lógica para preencher visualmente
-}
-
-# Criação da estrutura em Streamlit
+# Criando o layout
 cols = st.columns(7)
 
-for i, nome_col in enumerate(colunas):
+for i, col_info in enumerate(colunas):
     with cols[i]:
-        # Cabeçalho da Coluna
-        color_header = "#2E4053"
+        # Cabeçalho da Coluna com a cor específica
         st.markdown(f"""
-            <div style="background-color: {color_header}; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-                <h5 style="color: white; text-align: center; margin: 0; font-size: 14px;">{nome_col}</h5>
+            <div style="background-color: {col_info['cor']}; padding: 15px; border-radius: 10px 10px 0px 0px; border: 1px solid #212121;">
+                <h3 style="color: white; text-align: center; margin: 0; font-size: 18px; font-weight: bold;">
+                    {col_info['nome']}
+                </h3>
             </div>
         """, unsafe_allow_html=True)
         
-        # Loop para criar as 4 linhas em cada coluna
-        for j, nome_linha in enumerate(linhas):
-            # Cores alternadas para as linhas para facilitar a leitura
-            bg_color = "#F8F9F9" if j % 2 == 0 else "#E5E8E8"
+        # Criando as 4 linhas para cada coluna
+        for j, titulo_linha in enumerate(linhas):
+            # ID único para cada campo de texto
+            key_id = f"cell_{i}_{j}"
             
+            # Container para a célula
             st.markdown(f"""
-                <div style="background-color: {bg_color}; padding: 10px; border-radius: 5px; border-left: 5px solid #5D6D7E; margin-bottom: 8px; min-height: 120px;">
-                    <strong style="font-size: 11px; color: #1B2631;">{nome_linha}</strong>
-                    <p style="font-size: 13px; color: #515A5A; margin-top: 5px;">
-                        {conteudo_matriz.get((j,i), "Definir detalhes para esta etapa...")}
-                    </p>
+                <div style="background-color: #f9f9f9; padding: 5px; border-left: 4px solid {col_info['cor']}; border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;">
+                    <label style="font-size: 11px; font-weight: bold; color: {col_info['cor']};">{titulo_linha}</label>
                 </div>
             """, unsafe_allow_html=True)
+            
+            # Campo para você digitar as informações reais da Usina
+            st.text_area(label=titulo_linha, label_visibility="collapsed", height=100, key=key_id, placeholder="Digite aqui...")
 
 st.markdown("---")
-st.info("💡 Este quadro integra os requisitos da EXIN (ISO 27001) com a operação real dos Meios Eletrônicos.")
+st.success("✅ Dica: O P (Plan) foca na estratégia, o D (Do) na operação técnica, o C (Check) na auditoria via Power BI e o A (Act) na melhoria contínua.")
