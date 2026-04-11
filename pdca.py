@@ -24,7 +24,7 @@ linhas = [
     "🚩 Evidência / Status"
 ]
 
-# CSS global para padronizar altura e evitar quebra
+# CSS
 st.markdown("""
 <style>
 textarea {
@@ -33,12 +33,13 @@ textarea {
 </style>
 """, unsafe_allow_html=True)
 
-# Criar colunas
 cols = st.columns(len(colunas))
+
+# Armazenar dados
+dados = {}
 
 for i, col_info in enumerate(colunas):
     with cols[i]:
-        # Cabeçalho sem quebra de linha
         st.markdown(f"""
             <div style="
                 background-color: {col_info['cor']};
@@ -55,11 +56,9 @@ for i, col_info in enumerate(colunas):
             </div>
         """, unsafe_allow_html=True)
 
-        # Linhas
         for j, titulo_linha in enumerate(linhas):
             key_id = f"cell_{i}_{j}"
 
-            # Label da célula
             st.markdown(f"""
                 <div style="
                     background-color: #f4f4f4;
@@ -71,15 +70,63 @@ for i, col_info in enumerate(colunas):
                 </div>
             """, unsafe_allow_html=True)
 
-            # Campo de entrada
-            st.text_area(
+            valor = st.text_area(
                 label="",
                 key=key_id,
                 placeholder="Digite aqui...",
                 label_visibility="collapsed"
             )
 
+            dados[(i, j)] = valor
+
 st.markdown("---")
+
+# BOTÃO DE IMPRESSÃO
+if st.button("🖨️ Imprimir PDCA"):
+    
+    html = """
+    <html>
+    <head>
+    <style>
+        body { font-family: Arial; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
+        th { color: white; }
+    </style>
+    </head>
+    <body>
+    <h2>PDCA - Controle de Acesso</h2>
+    <table>
+    """
+
+    # Cabeçalho
+    html += "<tr>"
+    for col in colunas:
+        html += f"<th style='background:{col['cor']}'>{col['nome']}</th>"
+    html += "</tr>"
+
+    # Linhas
+    for j, linha_nome in enumerate(linhas):
+        html += "<tr>"
+        for i in range(len(colunas)):
+            conteudo = dados[(i, j)].replace("\n", "<br>")
+            html += f"<td><b>{linha_nome}</b><br>{conteudo}</td>"
+        html += "</tr>"
+
+    html += """
+    </table>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+
+    </body>
+    </html>
+    """
+
+    st.components.v1.html(html, height=800)
 
 st.success("✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua")
 
