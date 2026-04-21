@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
-import pytz
+from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 import json
 
@@ -120,7 +119,6 @@ def carregar_equipamentos_supabase(supabase):
         return None
 
 def salvar_pdca_supabase(supabase, dados_pdca, usuario):
-    """Salva PDCA no Supabase"""
     if not supabase:
         return False
     try:
@@ -147,7 +145,6 @@ def salvar_pdca_supabase(supabase, dados_pdca, usuario):
         return False
 
 def carregar_pdca_supabase(supabase):
-    """Carrega PDCA do Supabase"""
     if not supabase:
         return {}
     try:
@@ -157,7 +154,6 @@ def carregar_pdca_supabase(supabase):
             for item in response.data:
                 fase = item["fase"]
                 linha = item["linha"]
-                # Encontrar índices
                 fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operação", "6. Avaliação", "7. Melhoria"]
                 linhas = ["Objetivo Estratégico", "Ação Técnica", "Indicador (KPI)", "Evidência / Status"]
                 
@@ -203,6 +199,17 @@ def fazer_logout():
     st.session_state.autenticado = False
     st.session_state.usuario = ""
     st.rerun()
+
+# ──────────────────────────────────────────────
+# FUNÇÃO DE HORA DO BRASIL (sem pytz)
+# ──────────────────────────────────────────────
+def obter_hora_brasil():
+    """Retorna a hora atual no fuso horário de Brasília (UTC-3)"""
+    # UTC-3 para horário de Brasília
+    utc_now = datetime.now(timezone.utc)
+    brasilia_offset = timedelta(hours=-3)
+    brasilia_time = utc_now + brasilia_offset
+    return brasilia_time
 
 # ──────────────────────────────────────────────
 # CSS
@@ -269,10 +276,6 @@ if not verificar_login():
 # ──────────────────────────────────────────────
 # HELPERS
 # ──────────────────────────────────────────────
-def obter_hora_brasil():
-    fuso_br = pytz.timezone('America/Sao_Paulo')
-    return datetime.now(fuso_br)
-
 def nivel_risco(prob, imp):
     prob = str(prob).lower().strip()
     imp = str(imp).lower().strip()
@@ -492,13 +495,11 @@ with tab_graficos:
     col_g1, col_g2 = st.columns(2)
     
     with col_g1:
-        # Gráfico de riscos por nível
         risco_nivel = risco_filtrado["Nível do Risco"].value_counts().to_dict()
         cores_risco = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
         st.markdown(grafico_rosca(risco_nivel, "Distribuição de Riscos", cores_risco), unsafe_allow_html=True)
     
     with col_g2:
-        # Gráfico de status dos equipamentos
         status_eq = eq_filtrado["Status"].value_counts().to_dict()
         cores_status = {"Ativo": "#16a34a", "Inativo": "#dc2626", "Em Manutenção": "#d97706", "Reserva": "#64748b"}
         st.markdown(grafico_rosca(status_eq, "Status dos Equipamentos", cores_status), unsafe_allow_html=True)
@@ -506,19 +507,17 @@ with tab_graficos:
     col_g3, col_g4 = st.columns(2)
     
     with col_g3:
-        # Gráfico de riscos por localidade (top 5)
         risco_local = risco_filtrado["Localidade"].value_counts().head(5).to_dict()
         if risco_local:
             st.markdown(grafico_rosca(risco_local, "Top Localidades com Riscos", {"default": "#2563eb"}), unsafe_allow_html=True)
     
     with col_g4:
-        # Gráfico de equipamentos por tipo
         tipo_eq = eq_filtrado["Tipo"].value_counts().to_dict()
         cores_tipo = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
         st.markdown(grafico_rosca(tipo_eq, "Equipamentos por Tipo", cores_tipo), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-# TAB PDCA (COMPLETO)
+# TAB PDCA
 # ══════════════════════════════════════════════
 with tab_pdca:
     st.markdown("### 🔄 PDCA de Controle de Acesso")
@@ -544,7 +543,6 @@ with tab_pdca:
     cols = st.columns(len(fases), gap="small")
     dados_pdca = {}
     
-    # Carregar dados salvos
     if dados_pdca_carregado:
         st.info("📀 PDCA carregado do Supabase")
         dados_pdca = dados_pdca_carregado
@@ -590,7 +588,6 @@ with tab_pdca:
     
     with col_p2:
         if st.button("📋 Gerar Relatório PDCA", use_container_width=True):
-            # Gerar HTML do PDCA
             pdca_html = "<div style='font-family: Arial; padding: 20px;'>"
             pdca_html += "<h2 style='color:#2563eb'>Relatório PDCA - Controle de Acesso</h2>"
             pdca_html += f"<p>Data: {hora_br.strftime('%d/%m/%Y %H:%M')}</p><hr>"
@@ -608,7 +605,7 @@ with tab_pdca:
             pdca_html += "</div>"
             
             st.download_button(
-                label="📥 Baixar Relatório PDCA (HTML)",
+                label="📥 Baixar Relatório PDCA",
                 data=pdca_html,
                 file_name=f"relatorio_pdca_{hora_br.strftime('%Y%m%d_%H%M%S')}.html",
                 mime="text/html",
@@ -621,26 +618,4 @@ with tab_pdca:
 with tab_historico:
     st.markdown("### 📜 Histórico de Alterações")
     
-    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca"])
-    
-    if supabase:
-        df_hist = carregar_historico_supabase(supabase, tipo_filtro)
-        if not df_hist.empty:
-            st.dataframe(df_hist, use_container_width=True, hide_index=True)
-        else:
-            st.info("Nenhum registro no histórico. Clique em 'Salvar' para começar.")
-    else:
-        st.warning("Conecte ao Supabase para ver o histórico")
-
-# ──────────────────────────────────────────────
-# SIDEBAR ATUALIZADA
-# ──────────────────────────────────────────────
-with sidebar_ph:
-    alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-    medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
-    baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
-    st.markdown(f"""
-    <div class='sb-badge sb-red'>🔴 Alto <span class='sb-num'>{alto}</span></div>
-    <div class='sb-badge sb-yellow'>🟡 Médio <span class='sb-num'>{medio}</span></div>
-    <div class='sb-badge sb-green'>🟢 Baixo <span class='sb-num'>{baixo}</span></div>
-    """, unsafe_allow_html=True)
+    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_
