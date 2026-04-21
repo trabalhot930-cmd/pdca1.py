@@ -1,63 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import hashlib
+import json
 
-# Tentar importar supabase, se não tiver, instalar
-try:
-    from supabase import create_client, Client
-    SUPABASE_AVAILABLE = True
-except ImportError:
-    SUPABASE_AVAILABLE = False
-    st.warning("⚠️ Biblioteca supabase não instalada. Instale com: pip install supabase")
-
-# ──────────────────────────────────────────────
-# CONFIGURAÇÃO SUPABASE
-# ──────────────────────────────────────────────
-# Configurações do Supabase (substitua pelos seus dados)
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
-
-def init_supabase():
-    """Inicializa conexão com Supabase"""
-    if SUPABASE_AVAILABLE and SUPABASE_URL and SUPABASE_KEY:
-        return create_client(SUPABASE_URL, SUPABASE_KEY)
-    return None
-
-def salvar_historico(supabase, tipo, dados, usuario):
-    """Salva dados no histórico do Supabase"""
-    if not supabase:
-        return False
-    try:
-        data = {
-            "tipo": tipo,
-            "dados": dados.to_dict('records') if isinstance(dados, pd.DataFrame) else dados,
-            "usuario": usuario,
-            "data_criacao": datetime.now().isoformat()
-        }
-        supabase.table("historico_seguranca").insert(data).execute()
-        return True
-    except Exception as e:
-        st.error(f"Erro ao salvar histórico: {e}")
-        return False
-
-def carregar_historico(supabase, tipo=None):
-    """Carrega histórico do Supabase"""
-    if not supabase:
-        return pd.DataFrame()
-    try:
-        query = supabase.table("historico_seguranca").select("*").order("data_criacao", desc=True)
-        if tipo:
-            query = query.eq("tipo", tipo)
-        response = query.execute()
-        return pd.DataFrame(response.data)
-    except Exception as e:
-        st.error(f"Erro ao carregar histórico: {e}")
-        return pd.DataFrame()
-
-# ──────────────────────────────────────────────
-# CONFIGURAÇÃO DA PÁGINA
-# ──────────────────────────────────────────────
 st.set_page_config(
     layout="wide",
     page_title="SecureOps — Gestão de Segurança",
@@ -84,6 +29,44 @@ def fazer_logout():
     st.session_state.autenticado = False
     st.session_state.usuario = ""
     st.rerun()
+
+# ──────────────────────────────────────────────
+# HISTÓRICO LOCAL
+# ──────────────────────────────────────────────
+def salvar_historico_local(tipo, dados, usuario):
+    """Salva histórico no session_state"""
+    if 'historico' not in st.session_state:
+        st.session_state.historico = []
+    
+    registro = {
+        "id": len(st.session_state.historico) + 1,
+        "tipo": tipo,
+        "dados": dados.to_dict('records') if isinstance(dados, pd.DataFrame) else dados,
+        "usuario": usuario,
+        "data": datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+        "timestamp": datetime.now().isoformat()
+    }
+    st.session_state.historico.insert(0, registro)
+    # Manter apenas últimos 50 registros
+    st.session_state.historico = st.session_state.historico[:50]
+    return True
+
+def carregar_historico_local(tipo=None):
+    """Carrega histórico do session_state"""
+    if 'historico' not in st.session_state:
+        return pd.DataFrame()
+    
+    historico = st.session_state.historico
+    if tipo and tipo != "Todos":
+        historico = [h for h in historico if h["tipo"] == tipo]
+    
+    if not historico:
+        return pd.DataFrame()
+    
+    df = pd.DataFrame(historico)
+    if not df.empty:
+        df = df[["id", "tipo", "usuario", "data"]]
+    return df
 
 # ──────────────────────────────────────────────
 # CSS OTIMIZADO
@@ -191,7 +174,7 @@ textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37
 
 hr { border: none; border-top: 1px solid #e2e8f0 !important; margin: 0.8rem 0; }
 
-/* EXPORTER */
+/* EXPORT CARD */
 .export-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 20px;
@@ -284,15 +267,6 @@ def mcard(num, lbl, cor):
 
 def sec(t):
     st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
-
-# ──────────────────────────────────────────────
-# INICIALIZAR SUPABASE
-# ──────────────────────────────────────────────
-supabase = init_supabase()
-if supabase:
-    st.success("✅ Conectado ao Supabase - Histórico disponível")
-elif SUPABASE_AVAILABLE:
-    st.info("ℹ️ Configure as credenciais do Supabase nos secrets do Streamlit")
 
 # ──────────────────────────────────────────────
 # SIDEBAR
@@ -404,19 +378,16 @@ with tab_dados:
             with pd.ExcelWriter(f"relatorio_seguranca_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx", engine="openpyxl") as writer:
                 edited_risco.to_excel(writer, sheet_name="Analise_Risco", index=False)
                 edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
-            
-            # Salvar no Supabase
-            if supabase:
-                salvar_historico(supabase, "analise_risco", edited_risco, st.session_state.usuario)
-                salvar_historico(supabase, "equipamentos", edited_eq, st.session_state.usuario)
-                st.success("✅ Dados salvos no histórico do Supabase!")
+            st.success("✅ Excel exportado com sucesso!")
+            salvar_historico_local("analise_risco", edited_risco, st.session_state.usuario)
+            salvar_historico_local("equipamentos", edited_eq, st.session_state.usuario)
     
     with col_exp2:
         if st.button("📊 Exportar CSV", use_container_width=True):
             csv_risco = edited_risco.to_csv(index=False)
             csv_eq = edited_eq.to_csv(index=False)
-            st.download_button("Baixar Riscos CSV", csv_risco, f"riscos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
-            st.download_button("Baixar Equipamentos CSV", csv_eq, f"equipamentos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
+            st.download_button("Baixar Riscos CSV", csv_risco, f"riscos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
+            st.download_button("Baixar Equipamentos CSV", csv_eq, f"equipamentos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
     
     with col_exp3:
         if st.button("🖨️ Imprimir Relatório", use_container_width=True):
@@ -513,14 +484,8 @@ with tab_pdca:
     col_b, _, _ = st.columns([1.5, 3, 1.5])
     with col_b:
         if st.button("🖨️ Gerar Relatório Completo", use_container_width=True):
-            # Salvar PDCA no Supabase
-            if supabase:
-                pdca_dict = {}
-                for i, f in enumerate(fases):
-                    for j, linha in enumerate(linhas):
-                        key = f"pdca_{i}_{j}"
-                        pdca_dict[f"{f['nome']}_{linha}"] = dados_pdca.get((i, j), "")
-                salvar_historico(supabase, "pdca", pdca_dict, st.session_state.usuario)
+            # Salvar PDCA no histórico
+            salvar_historico_local("pdca", {"fases": fases, "dados": dados_pdca}, st.session_state.usuario)
             
             r_html = edited_risco.to_html(index=False)
             e_html = edited_eq.to_html(index=False)
@@ -549,6 +514,7 @@ with tab_pdca:
             <script>window.onload=function(){{window.print();}}</script>
             </body></html>"""
             st.components.v1.html(html_full, height=500)
+            st.success("✅ Relatório gerado e salvo no histórico!")
 
 # ══════════════════════════════════════════════
 # TAB HISTÓRICO
@@ -556,19 +522,38 @@ with tab_pdca:
 with tab_historico:
     st.markdown("### 📜 Histórico de Alterações")
     
-    if supabase:
-        col_h1, col_h2 = st.columns(2)
-        with col_h1:
-            tipo_filtro = st.selectbox("Filtrar por tipo:", ["Todos", "analise_risco", "equipamentos", "pdca"])
+    col_h1, col_h2 = st.columns([2, 1])
+    with col_h1:
+        tipo_filtro = st.selectbox("Filtrar por tipo:", ["Todos", "analise_risco", "equipamentos", "pdca"])
+    
+    with col_h2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 Atualizar Histórico", use_container_width=True):
+            st.rerun()
+    
+    # Carregar histórico
+    tipo = None if tipo_filtro == "Todos" else tipo_filtro
+    historico_df = carregar_historico_local(tipo)
+    
+    if not historico_df.empty:
+        st.markdown(f"**Total de registros:** {len(historico_df)}")
+        st.dataframe(historico_df, use_container_width=True, hide_index=True)
         
-        with col_h2:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔄 Atualizar Histórico", use_container_width=True):
-                st.rerun()
-        
-        # Carregar histórico
-        tipo = None if tipo_filtro == "Todos" else tipo_filtro
-        historico_df = carregar_historico(supabase, tipo)
-        
-        if not historico_df.empty:
-            st.markdown(f"**Total de registros:** {len(historico_df
+        # Botão para limpar histórico
+        if st.button("🗑️ Limpar Histórico", use_container_width=True):
+            st.session_state.historico = []
+            st.rerun()
+    else:
+        st.info("ℹ️ Nenhum registro no histórico ainda. Exporte relatórios para salvar no histórico.")
+
+# ──────────────────────────────────────────────
+# SIDEBAR - RISCOS (ATUALIZADO)
+# ──────────────────────────────────────────────
+with sidebar_ph:
+    risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+    risco_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
+    risco_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
+    
+    st.markdown(f"""
+    <div class='sb-badge sb-red'>   <span>🔴 Alto</span>  <span class='sb-num'>{risco_alto}</span>  </div>
+    <div class='sb-badge sb
