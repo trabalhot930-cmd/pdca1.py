@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# -------------------------------
-# CONFIGURAÇÃO DA PÁGINA
-# -------------------------------
 st.set_page_config(
     layout="wide",
     page_title="SecureOps — Gestão de Segurança",
@@ -12,18 +9,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# -------------------------------
-# SISTEMA DE AUTENTICAÇÃO
-# -------------------------------
+# ──────────────────────────────────────────────
+# AUTH
+# ──────────────────────────────────────────────
 def verificar_login():
     if 'autenticado' not in st.session_state:
         st.session_state.autenticado = False
     return st.session_state.autenticado
 
 def fazer_login(username, password):
-    USUARIO_VALIDO = "Juan"
-    SENHA_VALIDA = "Ju@n1990"
-    if username == USUARIO_VALIDO and password == SENHA_VALIDA:
+    if username == "Juan" and password == "Ju@n1990":
         st.session_state.autenticado = True
         st.session_state.usuario = username
         return True
@@ -34,433 +29,147 @@ def fazer_logout():
     st.session_state.usuario = ""
     st.rerun()
 
-# -------------------------------
-# CSS GLOBAL PROFISSIONAL
-# -------------------------------
+# ──────────────────────────────────────────────
+# CSS OTIMIZADO - FONTES PADRONIZADAS
+# ──────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* ─── RESET & BASE ─────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
 
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-    color: #E2E8F0;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: #1e293b;
 }
 
-[data-testid="stAppViewContainer"] {
-    background: #0A0E1A;
-    background-image:
-        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(14,165,233,0.08) 0%, transparent 55%),
-        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(99,102,241,0.07) 0%, transparent 55%);
-}
+[data-testid="stAppViewContainer"] { background: #f8fafc; }
+[data-testid="stSidebar"] { background: #0f172a !important; border-right: none !important; }
 
-[data-testid="stSidebar"] {
-    background: #0D1220 !important;
-    border-right: 1px solid rgba(255,255,255,0.06) !important;
-}
+.block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
 
-.block-container {
-    padding: 1.5rem 2rem 2rem !important;
-    max-width: 100% !important;
-}
+/* SIDEBAR */
+.sb-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px; padding: 1rem 0 0.2rem; }
+.sb-sub  { font-size: 11px; color: #94a3b8; margin-bottom: 0.8rem; }
+.sb-div  { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 0.8rem 0; }
+.sb-lbl  { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin-bottom: 0.4rem; }
+.sb-user { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
+.sb-role { font-size: 11px; color: #94a3b8; }
+.sb-badge { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
+.sb-red    { background: #fef2f2; color: #dc2626; }
+.sb-yellow { background: #fefce8; color: #ca8a04; }
+.sb-green  { background: #f0fdf4; color: #16a34a; }
+.sb-num { font-size: 18px; font-weight: 700; }
+.sb-time { font-size: 10px; color: #64748b; margin-top: 1rem; }
 
-/* ─── SIDEBAR ───────────────────────────────────────────────── */
-.sidebar-brand {
-    display: flex; align-items: center; gap: 12px;
-    padding: 1.2rem 0 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 1.2rem;
-}
-.sidebar-brand-icon {
-    width: 42px; height: 42px;
-    background: linear-gradient(135deg, #0EA5E9, #6366F1);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-}
-.sidebar-brand-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 18px; font-weight: 800;
-    letter-spacing: -0.3px;
-    color: #F1F5F9;
-}
-.sidebar-brand-sub {
-    font-size: 10px; color: #64748B;
-    letter-spacing: 0.8px; text-transform: uppercase;
-    margin-top: 1px;
-}
-
-.sidebar-user {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px; margin-bottom: 1rem;
-}
-.sidebar-avatar {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, #0EA5E9, #6366F1);
-    border-radius: 8px; font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-}
-.sidebar-username { font-size: 13px; font-weight: 600; color: #CBD5E1; }
-.sidebar-role { font-size: 10px; color: #64748B; letter-spacing: 0.5px; }
-
-.sidebar-section { margin: 1.2rem 0 0.4rem; }
-.sidebar-section-label {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: #475569; margin-bottom: 0.6rem;
-}
-
-.risk-stat {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 8px; margin-bottom: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-.risk-stat-label { font-size: 12px; color: #94A3B8; }
-.risk-stat-badge {
-    font-size: 12px; font-weight: 700;
-    padding: 2px 9px; border-radius: 20px;
-}
-.badge-alto { background: rgba(239,68,68,0.15); color: #F87171; border: 1px solid rgba(239,68,68,0.25); }
-.badge-medio { background: rgba(245,158,11,0.15); color: #FCD34D; border: 1px solid rgba(245,158,11,0.25); }
-.badge-baixo { background: rgba(34,197,94,0.15); color: #4ADE80; border: 1px solid rgba(34,197,94,0.25); }
-
-.sidebar-time {
-    font-size: 11px; color: #475569;
-    text-align: center; margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-/* ─── TOPBAR ────────────────────────────────────────────────── */
-.topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 0 1.2rem;
-    margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-}
-.topbar-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 26px; font-weight: 800;
-    letter-spacing: -0.5px; color: #F8FAFC;
-    line-height: 1.1;
-}
-.topbar-title span { color: #0EA5E9; }
-.topbar-meta { font-size: 12px; color: #475569; margin-top: 2px; }
-
-/* ─── TABS ──────────────────────────────────────────────────── */
+/* TABS */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 4px;
-    background: rgba(255,255,255,0.03) !important;
-    padding: 5px !important;
-    border-radius: 12px !important;
-    border: 1px solid rgba(255,255,255,0.07) !important;
-    width: fit-content;
+    gap: 0; background: #e2e8f0; padding: 4px;
+    border-radius: 10px; width: fit-content;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 8px !important;
-    padding: 8px 20px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #64748B !important;
-    background: transparent !important;
-    border: none !important;
-    font-family: 'DM Sans', sans-serif !important;
-    letter-spacing: 0.2px;
-    transition: all 0.2s ease;
+    border-radius: 7px; padding: 6px 20px;
+    font-size: 13px; font-weight: 500;
+    color: #64748b; background: transparent;
 }
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #0EA5E9, #6366F1) !important;
-    color: white !important;
+    background: #fff; color: #0f172a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.stTabs [data-baseweb="tab-panel"] {
-    padding-top: 1.5rem !important;
+.stTabs [data-baseweb="tab-panel"] { padding-top: 1.5rem; }
+
+/* TÍTULOS PADRONIZADOS */
+.page-title { font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin-bottom: 4px; }
+.page-sub   { font-size: 13px; color: #64748b; margin-bottom: 1.2rem; }
+
+.sec-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; color: #94a3b8;
+    margin: 1.5rem 0 0.8rem;
+    border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;
 }
 
-/* ─── METRIC CARDS ──────────────────────────────────────────── */
-.metric-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 20px 18px;
-    position: relative; overflow: hidden;
-    transition: border-color 0.2s ease;
-}
-.metric-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #0EA5E9, #6366F1);
-    opacity: 0.7;
-}
-.metric-card:hover { border-color: rgba(14,165,233,0.2); }
-.metric-icon {
-    font-size: 22px; margin-bottom: 10px; display: block;
-}
-.metric-value {
-    font-family: 'Syne', sans-serif;
-    font-size: 34px; font-weight: 800;
-    letter-spacing: -1px; color: #F8FAFC;
-    line-height: 1;
-}
-.metric-label {
-    font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: #475569; margin-top: 6px;
-}
-.metric-accent { color: #0EA5E9; }
-.metric-accent-red { color: #F87171; }
-.metric-accent-yellow { color: #FCD34D; }
-.metric-accent-green { color: #4ADE80; }
+/* METRIC CARDS */
+.mcard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 16px 12px; }
+.mcard-num { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
+.mcard-lbl { font-size: 12px; font-weight: 500; color: #64748b; }
+.c-blue   { color: #2563eb; }
+.c-red    { color: #dc2626; }
+.c-yellow { color: #d97706; }
+.c-green  { color: #16a34a; }
+.c-gray   { color: #475569; }
 
-/* ─── SECTION HEADERS ───────────────────────────────────────── */
-.section-header {
-    display: flex; align-items: center; gap: 10px;
-    margin: 1.8rem 0 1rem;
-}
-.section-header-line {
-    flex: 1; height: 1px;
-    background: linear-gradient(90deg, rgba(14,165,233,0.3), transparent);
-}
-.section-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 14px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    color: #94A3B8;
-    white-space: nowrap;
-}
+/* CHART CARDS */
+.chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.chart-title { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+.sbar-wrap { margin-bottom: 12px; }
+.sbar-label { font-size: 12px; font-weight: 500; color: #334155; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.sbar-track { height: 28px; border-radius: 6px; background: #f1f5f9; overflow: hidden; display: flex; }
+.sbar-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; min-width: 20px; }
+.legend-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.legend-dot { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748b; }
+.ldot { width: 9px; height: 9px; border-radius: 3px; }
 
-/* ─── BAR CHARTS ────────────────────────────────────────────── */
-.chart-container {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px; padding: 20px;
-}
-.chart-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 13px; font-weight: 700;
-    letter-spacing: 0.5px; color: #94A3B8;
-    text-transform: uppercase; margin-bottom: 18px;
-}
-.bar-row { margin: 12px 0; }
-.bar-label-row {
-    display: flex; justify-content: space-between;
-    margin-bottom: 5px;
-}
-.bar-label { font-size: 12px; color: #94A3B8; }
-.bar-count { font-size: 12px; font-weight: 700; color: #E2E8F0; }
-.bar-track {
-    background: rgba(255,255,255,0.06);
-    border-radius: 6px; overflow: hidden; height: 8px;
-}
-.bar-fill {
-    height: 100%; border-radius: 6px;
-    transition: width 0.6s ease;
-}
+/* PDCA */
+.pdca-header { border-radius: 8px; padding: 8px 6px; text-align: center; margin-bottom: 8px; }
+.pdca-row-lbl { font-size: 12px; font-weight: 600; color: #475569; padding: 6px 0 3px; border-bottom: 1px solid #e2e8f0; margin: 4px 0 3px; }
 
-/* ─── PDCA GRID ─────────────────────────────────────────────── */
-.pdca-phase-header {
-    border-radius: 10px; padding: 12px 8px;
-    text-align: center; margin-bottom: 10px;
-}
-.pdca-phase-tag {
-    font-size: 9px; font-weight: 700;
-    letter-spacing: 2px; text-transform: uppercase;
-    opacity: 0.75; margin-bottom: 3px;
-}
-.pdca-phase-name {
-    font-family: 'Syne', sans-serif;
-    font-size: 13px; font-weight: 700;
-}
-.pdca-phase-desc { font-size: 10px; opacity: 0.65; margin-top: 2px; }
-
-.pdca-row-label {
-    display: flex; align-items: center;
-    padding: 10px 10px; margin: 4px 0 6px;
-    background: rgba(255,255,255,0.03);
-    border-radius: 8px;
-    border-left: 3px solid #0EA5E9;
-    font-size: 12px; font-weight: 600; color: #94A3B8;
-    min-height: 54px;
-}
-
-/* ─── DATAFRAMES ────────────────────────────────────────────── */
-[data-testid="stDataFrame"] {
-    border: 1px solid rgba(255,255,255,0.07) !important;
-    border-radius: 12px !important;
-    overflow: hidden !important;
-}
-[data-testid="stDataFrameResizable"] thead {
-    background: rgba(14,165,233,0.08) !important;
-}
-
-/* ─── TEXTAREAS ─────────────────────────────────────────────── */
+/* INPUTS */
 textarea {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.09) !important;
-    border-radius: 8px !important;
-    color: #CBD5E1 !important;
-    font-size: 12px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    resize: none !important;
+    border-radius: 8px !important; border: 1px solid #e2e8f0 !important;
+    font-size: 12px !important; font-family: 'Inter', sans-serif !important;
+    background: #fff !important;
 }
-textarea:focus {
-    border-color: rgba(14,165,233,0.5) !important;
-    box-shadow: 0 0 0 2px rgba(14,165,233,0.12) !important;
-}
+textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37,99,235,0.1) !important; }
 
-/* ─── BUTTONS ───────────────────────────────────────────────── */
+/* DATA EDITOR */
+.stDataFrame { font-size: 12px !important; }
+[data-testid="stDataFrame"] table { font-size: 12px !important; }
+
+/* BUTTON */
 .stButton > button {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
-    color: #CBD5E1 !important;
-    border-radius: 8px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-weight: 600 !important; font-size: 13px !important;
-    transition: all 0.2s ease !important;
+    background: #0f172a !important; color: #fff !important;
+    border: none !important; border-radius: 8px !important;
+    font-size: 13px !important; font-weight: 500 !important;
 }
-.stButton > button:hover {
-    background: rgba(14,165,233,0.12) !important;
-    border-color: rgba(14,165,233,0.3) !important;
-    color: #0EA5E9 !important;
-}
+.stButton > button:hover { background: #1e293b !important; }
 
-/* ─── LOGIN ─────────────────────────────────────────────────── */
-.login-wrap {
-    min-height: 100vh; display: flex;
-    align-items: center; justify-content: center;
-}
-.login-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px; padding: 40px 36px;
-    width: 100%; max-width: 420px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
-}
-.login-logo {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, #0EA5E9, #6366F1);
-    border-radius: 14px; font-size: 26px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
-}
-.login-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 22px; font-weight: 800;
-    text-align: center; color: #F8FAFC;
-    letter-spacing: -0.3px; margin-bottom: 4px;
-}
-.login-subtitle {
-    font-size: 13px; color: #475569;
-    text-align: center; margin-bottom: 28px;
-}
-
-/* ─── ALERTS & MESSAGES ─────────────────────────────────────── */
-[data-testid="stSuccess"] {
-    background: rgba(34,197,94,0.08) !important;
-    border: 1px solid rgba(34,197,94,0.2) !important;
-    border-radius: 10px !important;
-}
-[data-testid="stError"] {
-    background: rgba(239,68,68,0.08) !important;
-    border: 1px solid rgba(239,68,68,0.2) !important;
-    border-radius: 10px !important;
-}
-
-/* ─── FORM INPUTS ───────────────────────────────────────────── */
-[data-testid="stTextInput"] input {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(255,255,255,0.09) !important;
-    border-radius: 8px !important;
-    color: #E2E8F0 !important;
-    font-family: 'DM Sans', sans-serif !important;
-}
-[data-testid="stTextInput"] input:focus {
-    border-color: rgba(14,165,233,0.5) !important;
-    box-shadow: 0 0 0 2px rgba(14,165,233,0.12) !important;
-}
-
-/* ─── SCROLLBAR ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(14,165,233,0.4); }
-
-/* ─── DIVIDER ───────────────────────────────────────────────── */
-hr { border: none; border-top: 1px solid rgba(255,255,255,0.07) !important; }
-
-/* ─── MISC ──────────────────────────────────────────────────── */
-.stMarkdown p { color: #94A3B8; }
-[data-testid="stSelectbox"] select {
-    background: rgba(255,255,255,0.04) !important;
-}
+hr { border: none; border-top: 1px solid #e2e8f0 !important; margin: 0.8rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# TELA DE LOGIN
+# LOGIN
 # ──────────────────────────────────────────────
 if not verificar_login():
-    st.markdown("""
-    <div style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
-        <div style="width:100%;max-width:400px;">
-    """, unsafe_allow_html=True)
-
-    col_a, col_b, col_c = st.columns([1, 2.2, 1])
-    with col_b:
-        st.markdown("""
-        <div style="
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px; padding: 40px 32px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
-        ">
-            <div style="
-                width:54px;height:54px;
-                background:linear-gradient(135deg,#0EA5E9,#6366F1);
-                border-radius:13px;font-size:24px;
-                display:flex;align-items:center;justify-content:center;
-                margin:0 auto 18px;
-            ">🛡️</div>
-            <div style="
-                font-family:'Syne',sans-serif;font-size:22px;
-                font-weight:800;text-align:center;color:#F8FAFC;
-                letter-spacing:-0.3px;margin-bottom:4px;
-            ">SecureOps</div>
-            <div style="font-size:12px;color:#475569;text-align:center;margin-bottom:28px;">
-                Sistema de Gestão de Segurança da Informação
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
+    _, col, _ = st.columns([1, 1.3, 1])
+    with col:
+        st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='page-title' style='text-align:center'>🛡️ SecureOps</div>", unsafe_allow_html=True)
+        st.markdown("<div class='page-sub' style='text-align:center'>Sistema de Gestão de Segurança</div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
         with st.form("login_form"):
             username = st.text_input("Usuário", placeholder="Digite seu usuário")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
-            submit = st.form_submit_button("Entrar →", use_container_width=True)
-
+            submit = st.form_submit_button("Entrar", use_container_width=True)
             if submit:
                 if fazer_login(username, password):
-                    st.success(f"Bem-vindo, {username}!")
+                    st.success("Bem-vindo!")
                     st.rerun()
                 else:
-                    st.error("Credenciais inválidas. Tente novamente.")
-
-        st.markdown("<p style='text-align:center;font-size:11px;color:#334155;margin-top:16px;'>Usuário: Juan &nbsp;·&nbsp; Senha: Ju@n1990</p>", unsafe_allow_html=True)
-
+                    st.error("Usuário ou senha inválidos.")
+        st.markdown("<p style='text-align:center;font-size:11px;color:#94a3b8;margin-top:10px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
     st.stop()
 
 # ──────────────────────────────────────────────
-# FUNÇÕES AUXILIARES
+# HELPERS
 # ──────────────────────────────────────────────
 def nivel_risco(prob, imp):
     prob = str(prob).lower().strip()
-    imp = str(imp).lower().strip()
+    imp  = str(imp).lower().strip()
     if (prob == "baixa" and imp in ["baixo","médio"]) or (prob == "média" and imp == "baixo"):
         return "🟢 Baixo"
     elif (prob == "baixa" and imp == "alto") or (prob == "média" and imp == "médio") or (prob == "alta" and imp == "baixo"):
@@ -468,92 +177,88 @@ def nivel_risco(prob, imp):
     else:
         return "🔴 Alto"
 
-def bar_chart_html(dados, title="", palette=None):
-    if not dados:
-        return "<p style='color:#475569;font-size:13px;'>Sem dados.</p>"
-    max_v = max(dados.values()) if dados.values() else 1
-    html = f"<div class='chart-container'><div class='chart-title'>{title}</div>"
-    default_colors = ["#0EA5E9", "#6366F1", "#F59E0B", "#10B981", "#F87171"]
-    for idx, (label, val) in enumerate(dados.items()):
-        pct = (val / max_v) * 100
-        if palette:
-            cor = "#F87171" if "Alto" in label else "#FCD34D" if "Médio" in label else "#4ADE80"
-        else:
-            cor = default_colors[idx % len(default_colors)]
-        html += f"""
-        <div class='bar-row'>
-            <div class='bar-label-row'>
-                <span class='bar-label'>{label[:36]}</span>
-                <span class='bar-count'>{val}</span>
-            </div>
-            <div class='bar-track'>
-                <div class='bar-fill' style='width:{pct}%;background:{cor};'></div>
-            </div>
-        </div>"""
-    html += "</div>"
-    return html
+CORES_RISCO  = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
+CORES_TIPO   = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
+CORES_STATUS = {"Ativo": "#16a34a", "Em Manutenção": "#d97706", "Desativado": "#dc2626", "Reserva": "#64748b"}
 
-def section_header(title):
-    st.markdown(f"""
-    <div class='section-header'>
-        <span class='section-title'>{title}</span>
-        <div class='section-header-line'></div>
-    </div>
-    """, unsafe_allow_html=True)
+def stacked_bar(df, title, cores, col_group, col_stack):
+    """Gera gráfico de barras empilhadas"""
+    if df.empty:
+        return "<div class='chart-card'>Sem dados para exibir</div>"
+    
+    pivot = df.groupby([col_group, col_stack]).size().unstack(fill_value=0)
+    cats = list(pivot.columns)
+    tmax = pivot.sum(axis=1).max() or 1
+
+    legend = "".join([
+        f"<div class='legend-dot'><div class='ldot' style='background:{cores.get(c, \"#94a3b8\")}'></div>{c}</div>"
+        for c in cats
+    ])
+
+    bars = ""
+    for idx, row in pivot.iterrows():
+        total = row.sum() or 1
+        segs = ""
+        for cat in cats:
+            val = row.get(cat, 0)
+            pct = (val / total) * 100
+            cor = cores.get(cat, "#94a3b8")
+            if pct > 0:
+                segs += f"<div class='sbar-seg' style='width:{pct}%;background:{cor};' title='{cat}: {val}'>{val if pct > 8 else ''}</div>"
+        w = max((total / tmax) * 100, 10)
+        bars += f"""
+        <div class='sbar-wrap'>
+            <div class='sbar-label'>
+                <span>{str(idx)[:40]}</span>
+                <span style='font-weight:600;color:#0f172a'>{int(total)}</span>
+            </div>
+            <div class='sbar-track' style='width:{w}%'>{segs}</div>
+        </div>"""
+
+    return f"<div class='chart-card'><div class='chart-title'>{title}</div>{bars}<div class='legend-row'>{legend}</div></div>"
+
+def mcard(num, lbl, cor):
+    return f"<div class='mcard'><div class='mcard-num {cor}'>{num}</div><div class='mcard-lbl'>{lbl}</div></div>"
+
+def sec(t):
+    st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
     st.markdown(f"""
-    <div class='sidebar-brand'>
-        <div class='sidebar-brand-icon'>🛡️</div>
-        <div>
-            <div class='sidebar-brand-name'>SecureOps</div>
-            <div class='sidebar-brand-sub'>Gestão de Segurança</div>
-        </div>
-    </div>
-    <div class='sidebar-user'>
-        <div class='sidebar-avatar'>👤</div>
-        <div>
-            <div class='sidebar-username'>{st.session_state.usuario}</div>
-            <div class='sidebar-role'>Administrador</div>
-        </div>
-    </div>
+    <div class='sb-logo'>🛡️ SecureOps</div>
+    <div class='sb-sub'>Gestão de Segurança</div>
+    <hr class='sb-div'>
+    <div class='sb-lbl'>Usuário</div>
+    <div class='sb-user'>{st.session_state.usuario}</div>
+    <div class='sb-role'>Administrador</div>
+    <hr class='sb-div'>
+    <div class='sb-lbl'>Resumo de Riscos</div>
     """, unsafe_allow_html=True)
-
-    # placeholder — será preenchido após calcular os riscos
-    sidebar_risk_placeholder = st.empty()
-
-    if st.button("⎋  Encerrar Sessão", use_container_width=True):
+    sidebar_ph = st.empty()
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    if st.button("Encerrar Sessão", use_container_width=True):
         fazer_logout()
-
-    st.markdown(f"<div class='sidebar-time'>🕐 {datetime.now().strftime('%d/%m/%Y  %H:%M')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='sb-time'>🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# TOPBAR
+# CABEÇALHO
 # ──────────────────────────────────────────────
 st.markdown(f"""
-<div class='topbar'>
-    <div>
-        <div class='topbar-title'>PDCA + <span>Análise de Risco</span></div>
-        <div class='topbar-meta'>Segurança da Informação · {datetime.now().strftime('%A, %d de %B de %Y')}</div>
-    </div>
-</div>
+<div class='page-title'>PDCA + Análise de Risco</div>
+<div class='page-sub'>Gestão de Segurança da Informação · {datetime.now().strftime('%d/%m/%Y')}</div>
 """, unsafe_allow_html=True)
 
-# ──────────────────────────────────────────────
-# TABS
-# ──────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["  📊  Análise de Risco  ", "  🖥️  Equipamentos  ", "  🔄  PDCA  "])
+tab1, tab2, tab3 = st.tabs(["📊 Análise de Risco", "🖥️ Equipamentos", "🔄 PDCA"])
 
 # ══════════════════════════════════════════════
 # TAB 1 — ANÁLISE DE RISCO
 # ══════════════════════════════════════════════
 with tab1:
-    section_header("Matriz de Risco")
-
-    dados_risco_inicial = pd.DataFrame({
+    sec("Matriz de Risco")
+    dados_risco = pd.DataFrame({
         "Ativo": ["Cabos na sala de servidores", "Pen drive ou HD", "Servidor de internet",
                   "Switch de borda", "Firewall", "Router core"],
         "Localidade": ["Sala de servidores - Bloco A", "TI - Sala 210", "Data Center - Rack 05",
@@ -566,235 +271,172 @@ with tab1:
         "Probabilidade": ["Baixa", "Alta", "Média", "Média", "Baixa", "Média"],
         "Impacto": ["Alto", "Alto", "Alto", "Médio", "Alto", "Alto"],
     })
-    dados_risco_inicial["Nível do Risco"] = dados_risco_inicial.apply(
-        lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
+    dados_risco["Nível do Risco"] = dados_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
     edited_risco = st.data_editor(
-        dados_risco_inicial,
-        use_container_width=True,
-        num_rows="dynamic",
+        dados_risco, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Ativo":          st.column_config.TextColumn("🏷️ Ativo", required=True),
-            "Localidade":     st.column_config.TextColumn("📍 Localidade"),
-            "Ameaça":         st.column_config.TextColumn("⚠️ Ameaça"),
-            "Vulnerabilidade":st.column_config.TextColumn("🔓 Vulnerabilidade"),
-            "Probabilidade":  st.column_config.SelectboxColumn("📊 Probabilidade", options=["Baixa","Média","Alta"]),
-            "Impacto":        st.column_config.SelectboxColumn("💥 Impacto", options=["Baixo","Médio","Alto"]),
-            "Nível do Risco": st.column_config.TextColumn("🎯 Nível", disabled=True),
-        },
-        hide_index=True,
+            "Ativo": st.column_config.TextColumn("Ativo", required=True),
+            "Localidade": st.column_config.TextColumn("Localidade"),
+            "Ameaça": st.column_config.TextColumn("Ameaça"),
+            "Vulnerabilidade": st.column_config.TextColumn("Vulnerabilidade"),
+            "Probabilidade": st.column_config.SelectboxColumn("Probabilidade", options=["Baixa", "Média", "Alta"]),
+            "Impacto": st.column_config.SelectboxColumn("Impacto", options=["Baixo", "Médio", "Alto"]),
+            "Nível do Risco": st.column_config.TextColumn("Nível", disabled=True),
+        }, hide_index=True,
     )
-    edited_risco["Nível do Risco"] = edited_risco.apply(
-        lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
+    edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
-    qtd_alto  = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+    qtd_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
     qtd_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
     qtd_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
 
-    section_header("Dashboard de Riscos")
+    sec("Indicadores")
     c1, c2, c3, c4 = st.columns(4)
-    cards = [
-        ("📋", str(len(edited_risco)), "Total de Riscos", "metric-accent"),
-        ("🔴", str(qtd_alto),  "Riscos Críticos",  "metric-accent-red"),
-        ("🟡", str(qtd_medio), "Riscos Médios",    "metric-accent-yellow"),
-        ("🟢", str(qtd_baixo), "Riscos Baixos",    "metric-accent-green"),
-    ]
-    for col, (icon, val, label, accent) in zip([c1,c2,c3,c4], cards):
-        with col:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <span class='metric-icon'>{icon}</span>
-                <div class='metric-value {accent}'>{val}</div>
-                <div class='metric-label'>{label}</div>
-            </div>""", unsafe_allow_html=True)
+    with c1: st.markdown(mcard(len(edited_risco), "Total de Riscos", "c-blue"), unsafe_allow_html=True)
+    with c2: st.markdown(mcard(qtd_alto, "Riscos Críticos", "c-red"), unsafe_allow_html=True)
+    with c3: st.markdown(mcard(qtd_medio, "Riscos Médios", "c-yellow"), unsafe_allow_html=True)
+    with c4: st.markdown(mcard(qtd_baixo, "Riscos Baixos", "c-green"), unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    sec("Gráficos")
     g1, g2 = st.columns(2)
     with g1:
-        risco_local = edited_risco.groupby('Localidade').size().to_dict()
-        st.markdown(bar_chart_html(risco_local, "Riscos por Localidade"), unsafe_allow_html=True)
+        st.markdown(stacked_bar(edited_risco, "Riscos por Localidade", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
     with g2:
-        niveis = edited_risco['Nível do Risco'].value_counts().to_dict()
-        st.markdown(bar_chart_html(niveis, "Distribuição por Nível de Risco", palette=True), unsafe_allow_html=True)
-
-    section_header("Resumo por Localidade")
-    resumo_local = edited_risco.groupby(['Localidade','Nível do Risco']).size().unstack(fill_value=0)
-    st.dataframe(resumo_local, use_container_width=True)
+        st.markdown(stacked_bar(edited_risco, "Riscos por Probabilidade", CORES_RISCO, "Probabilidade", "Nível do Risco"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-# TAB 2 — EQUIPAMENTOS
+# TAB 2 — EQUIPAMENTOS (COM CAMPO MOTIVO)
 # ══════════════════════════════════════════════
 with tab2:
-    section_header("Inventário de Equipamentos TI/OT")
-
-    dados_equipamentos_inicial = pd.DataFrame({
-        "Equipamento": ["Firewall Fortinet","Switch Core Huawei","Router Cisco","Servidor Dell","Storage EMC","Access Point","Patch Panel"],
-        "Tipo":        ["Segurança","Rede","Rede","Servidor","Storage","Rede","Infraestrutura"],
-        "Localidade":  ["Data Center - Rack 02","Data Center - Rack 01","Data Center - Rack 01",
-                        "Data Center - Rack 03","Data Center - Rack 04","Sala 210 - Teto","Sala de servidores"],
-        "Fabricante":  ["Fortinet","Huawei","Cisco","Dell","EMC","Ubiquiti","Intelbras"],
-        "Modelo":      ["FG-100F","S12700","ISR 4321","PowerEdge R750","Unity XT 380","U6-LR","CAT6"],
-        "Status":      ["Ativo","Ativo","Ativo","Ativo","Ativo","Ativo","Ativo"],
+    sec("Inventário de Equipamentos TI/OT")
+    dados_eq = pd.DataFrame({
+        "Equipamento": ["Firewall Fortinet", "Switch Core Huawei", "Router Cisco", "Servidor Dell",
+                        "Storage EMC", "Access Point", "Patch Panel"],
+        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infraestrutura"],
+        "Localidade": ["Data Center - Rack 02", "Data Center - Rack 01", "Data Center - Rack 01",
+                       "Data Center - Rack 03", "Data Center - Rack 04", "Sala 210 - Teto", "Sala de servidores"],
+        "Fabricante": ["Fortinet", "Huawei", "Cisco", "Dell", "EMC", "Ubiquiti", "Intelbras"],
+        "Modelo": ["FG-100F", "S12700", "ISR 4321", "PowerEdge R750", "Unity XT 380", "U6-LR", "CAT6"],
+        "Status": ["Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo"],
+        "Motivo": ["", "", "", "", "", "", ""],
     })
 
-    edited_equipamentos = st.data_editor(
-        dados_equipamentos_inicial,
-        use_container_width=True,
-        num_rows="dynamic",
+    edited_eq = st.data_editor(
+        dados_eq, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Equipamento": st.column_config.TextColumn("🖥️ Equipamento", required=True),
-            "Tipo":        st.column_config.SelectboxColumn("📂 Tipo", options=["Segurança","Rede","Servidor","Storage","Infraestrutura"]),
-            "Localidade":  st.column_config.TextColumn("📍 Localidade"),
-            "Fabricante":  st.column_config.TextColumn("🏭 Fabricante"),
-            "Modelo":      st.column_config.TextColumn("📟 Modelo"),
-            "Status":      st.column_config.SelectboxColumn("⚙️ Status", options=["Ativo","Em Manutenção","Desativado","Reserva"]),
-        },
-        hide_index=True,
+            "Equipamento": st.column_config.TextColumn("Equipamento", required=True),
+            "Tipo": st.column_config.SelectboxColumn("Tipo", options=["Segurança", "Rede", "Servidor", "Storage", "Infraestrutura"]),
+            "Localidade": st.column_config.TextColumn("Localidade"),
+            "Fabricante": st.column_config.TextColumn("Fabricante"),
+            "Modelo": st.column_config.TextColumn("Modelo"),
+            "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Em Manutenção", "Desativado", "Reserva"]),
+            "Motivo": st.column_config.TextColumn("Motivo / Observação"),
+        }, hide_index=True,
     )
 
-    section_header("Dashboard de Equipamentos")
-    ativos     = len(edited_equipamentos[edited_equipamentos["Status"] == "Ativo"])
-    seguranca  = len(edited_equipamentos[edited_equipamentos["Tipo"] == "Segurança"])
-    fabricantes = edited_equipamentos["Fabricante"].nunique()
+    sec("Indicadores")
+    ativos = len(edited_eq[edited_eq["Status"] == "Ativo"])
+    manutencao = len(edited_eq[edited_eq["Status"] == "Em Manutenção"])
+    seg_count = len(edited_eq[edited_eq["Tipo"] == "Segurança"])
+    fab_count = edited_eq["Fabricante"].nunique()
 
     c1, c2, c3, c4 = st.columns(4)
-    eq_cards = [
-        ("📦", str(len(edited_equipamentos)), "Total de Equipamentos", "metric-accent"),
-        ("✅", str(ativos),     "Equipamentos Ativos",    "metric-accent-green"),
-        ("🔒", str(seguranca),  "Dispositivos de Segurança","metric-accent"),
-        ("🏭", str(fabricantes),"Fabricantes",             ""),
-    ]
-    for col, (icon, val, label, accent) in zip([c1,c2,c3,c4], eq_cards):
-        with col:
-            st.markdown(f"""
-            <div class='metric-card'>
-                <span class='metric-icon'>{icon}</span>
-                <div class='metric-value {accent}'>{val}</div>
-                <div class='metric-label'>{label}</div>
-            </div>""", unsafe_allow_html=True)
+    with c1: st.markdown(mcard(len(edited_eq), "Total Equipamentos", "c-blue"), unsafe_allow_html=True)
+    with c2: st.markdown(mcard(ativos, "Ativos", "c-green"), unsafe_allow_html=True)
+    with c3: st.markdown(mcard(manutencao, "Em Manutenção", "c-yellow"), unsafe_allow_html=True)
+    with c4: st.markdown(mcard(fab_count, "Fabricantes", "c-gray"), unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    sec("Gráficos")
     g1, g2 = st.columns(2)
     with g1:
-        tipo_count = edited_equipamentos["Tipo"].value_counts().to_dict()
-        st.markdown(bar_chart_html(tipo_count, "Distribuição por Tipo"), unsafe_allow_html=True)
+        st.markdown(stacked_bar(edited_eq, "Equipamentos por Tipo (Status)", CORES_STATUS, "Tipo", "Status"), unsafe_allow_html=True)
     with g2:
-        local_count = edited_equipamentos["Localidade"].value_counts().head(6).to_dict()
-        st.markdown(bar_chart_html(local_count, "Top Localidades"), unsafe_allow_html=True)
+        st.markdown(stacked_bar(edited_eq, "Equipamentos por Localidade (Tipo)", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 # TAB 3 — PDCA
 # ══════════════════════════════════════════════
 with tab3:
-    section_header("PDCA de Controle de Acesso")
+    sec("PDCA de Controle de Acesso")
 
-    colunas_pdca = [
-        {"nome": "Contexto",     "fase": "P — PLAN", "cor": "#0EA5E9", "desc": "Análise do ambiente"},
-        {"nome": "Liderança",    "fase": "P — PLAN", "cor": "#0EA5E9", "desc": "Comprometimento"},
-        {"nome": "Planejamento", "fase": "P — PLAN", "cor": "#0EA5E9", "desc": "Objetivos e riscos"},
-        {"nome": "Suporte",      "fase": "D — DO",   "cor": "#F59E0B", "desc": "Recursos e comunicação"},
-        {"nome": "Operação",     "fase": "D — DO",   "cor": "#F59E0B", "desc": "Execução e controles"},
-        {"nome": "Avaliação",    "fase": "C — CHECK","cor": "#10B981", "desc": "Monitoramento"},
-        {"nome": "Melhoria",     "fase": "A — ACT",  "cor": "#6366F1", "desc": "Ações corretivas"},
+    fases = [
+        {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "2. Liderança", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "3. Planejamento", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "4. Suporte", "fase": "DO", "cor": "#d97706"},
+        {"nome": "5. Operação", "fase": "DO", "cor": "#d97706"},
+        {"nome": "6. Avaliação", "fase": "CHECK", "cor": "#16a34a"},
+        {"nome": "7. Melhoria", "fase": "ACT", "cor": "#7c3aed"},
     ]
-
-    linhas_pdca = [
+    linhas = [
         "🎯 Objetivo Estratégico",
-        "⚙️ Ação Técnica (TI/OT)",
+        "⚙️ Ação Técnica",
         "📊 Indicador (KPI)",
         "🚩 Evidência / Status",
     ]
 
-    cols = st.columns(len(colunas_pdca), gap="small")
+    cols = st.columns(len(fases), gap="small")
     dados_pdca = {}
 
-    for i, (col_obj, col_info) in enumerate(zip(cols, colunas_pdca)):
-        with col_obj:
+    for i, (col, f) in enumerate(zip(cols, fases)):
+        with col:
             st.markdown(f"""
-            <div class='pdca-phase-header' style='
-                background: linear-gradient(135deg, {col_info["cor"]}22, {col_info["cor"]}11);
-                border: 1px solid {col_info["cor"]}44;
-            '>
-                <div class='pdca-phase-tag' style='color:{col_info["cor"]};'>{col_info["fase"]}</div>
-                <div class='pdca-phase-name' style='color:{col_info["cor"]};'>{col_info["nome"]}</div>
-                <div class='pdca-phase-desc' style='color:{col_info["cor"]};'>{col_info["desc"]}</div>
+            <div class='pdca-header' style='background:{f["cor"]}10;border:1px solid {f["cor"]}30;'>
+                <div style='font-size:9px;font-weight:600;letter-spacing:1px;color:{f["cor"]};text-transform:uppercase;'>{f["fase"]}</div>
+                <div style='font-size:12px;font-weight:600;color:{f["cor"]};margin-top:2px;'>{f["nome"]}</div>
             </div>
             """, unsafe_allow_html=True)
-
-            for j, linha in enumerate(linhas_pdca):
+            for j, linha in enumerate(linhas):
                 if i == 0:
-                    st.markdown(f"<div class='pdca-row-label' style='border-left-color:{col_info['cor']};'>{linha}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='pdca-row-lbl'>{linha}</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown("<div style='height:54px;margin:4px 0 6px;'></div>", unsafe_allow_html=True)
-
-                key_id = f"pdca_{i}_{j}"
-                valor = st.text_area(
-                    label="", key=key_id,
-                    placeholder="Registre aqui...",
+                    st.markdown("<div style='height:34px;'></div>", unsafe_allow_html=True)
+                dados_pdca[(i, j)] = st.text_area(
+                    label="", key=f"p_{i}_{j}",
+                    placeholder="Registre...",
                     label_visibility="collapsed",
-                    height=90,
+                    height=85,
                 )
-                dados_pdca[(i, j)] = valor
-                st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
 
-    # Botão de impressão
     st.markdown("<br>", unsafe_allow_html=True)
-    c_btn1, _, _ = st.columns([1.5, 3, 1.5])
-    with c_btn1:
-        if st.button("🖨️  Gerar Relatório para Impressão", use_container_width=True):
-            risco_html = edited_risco.to_html(index=False)
-            equip_html = edited_equipamentos.to_html(index=False)
-            pdca_html = "<table border='1' style='width:100%;border-collapse:collapse;'>"
-            pdca_html += "<tr>" + "".join(
-                f"<th style='background:{c['cor']};color:white;padding:8px;'>{c['nome']}<br><small>{c['fase']}</small></th>"
-                for c in colunas_pdca) + "</tr>"
-            for j in range(len(linhas_pdca)):
-                pdca_html += "<tr>"
-                for i in range(len(colunas_pdca)):
-                    cont = dados_pdca.get((i, j), "").replace("\n", "<br>")
-                    pdca_html += f"<td style='padding:8px;vertical-align:top;'><b>{linhas_pdca[j]}</b><br>{cont or '—'}</td>"
-                pdca_html += "</tr>"
-            pdca_html += "</table>"
-
-            html_completo = f"""
-            <html><head>
-            <style>
-                body{{font-family:Arial;margin:30px;color:#111;}}
-                h1{{font-size:22px;margin-bottom:4px;}}
-                h2{{font-size:16px;margin:20px 0 8px;color:#1e40af;border-bottom:2px solid #93c5fd;padding-bottom:4px;}}
-                table{{border-collapse:collapse;width:100%;margin-bottom:20px;font-size:12px;}}
-                th,td{{border:1px solid #cbd5e1;padding:7px 10px;}}
-                th{{background:#1e3a5f;color:white;}}
-                tr:nth-child(even){{background:#f8fafc;}}
-                .meta{{font-size:11px;color:#64748b;margin-bottom:20px;}}
-            </style></head>
-            <body>
-                <h1>📋 Relatório de Gestão de Segurança</h1>
-                <div class='meta'>Gerado por: {st.session_state.usuario} &nbsp;|&nbsp; {datetime.now().strftime('%d/%m/%Y às %H:%M')}</div>
-                <h2>Análise de Risco</h2>{risco_html}
-                <h2>Equipamentos TI/OT</h2>{equip_html}
-                <h2>PDCA de Controle de Acesso</h2>{pdca_html}
-                <script>window.onload=function(){{window.print();}}</script>
+    col_b, _, _ = st.columns([1.5, 3, 1.5])
+    with col_b:
+        if st.button("🖨️ Gerar Relatório", use_container_width=True):
+            r_html = edited_risco.to_html(index=False)
+            e_html = edited_eq.to_html(index=False)
+            p_html = "<table style='width:100%;border-collapse:collapse;font-size:12px;'>"
+            p_html += "<tr>" + "".join(
+                f"<th style='background:{f['cor']};color:#fff;padding:8px;'>{f['nome']}</th>"
+                for f in fases) + "</tr>"
+            for j in range(len(linhas)):
+                p_html += "<tr>" + "".join(
+                    f"<td style='padding:8px;vertical-align:top;border:1px solid #e2e8f0;'><b>{linhas[j]}</b><br>{dados_pdca.get((i,j),'').replace(chr(10),'<br>') or '—'}</td>"
+                    for i in range(len(fases))) + "</tr>"
+            p_html += "</table>"
+            
+            html_full = f"""<html><head><style>
+            body{{font-family:'Inter',Arial;margin:30px;font-size:13px;}}
+            h1{{font-size:20px;}} h2{{font-size:14px;margin:20px 0 8px;color:#2563eb;border-bottom:2px solid #e2e8f0;padding-bottom:4px;}}
+            table{{border-collapse:collapse;width:100%;margin-bottom:20px;}}
+            th,td{{border:1px solid #cbd5e1;padding:6px 8px;}}
+            th{{background:#0f172a;color:#fff;}}
+            </style></head><body>
+            <h1>Relatório de Gestão de Segurança</h1>
+            <p style='color:#64748b;font-size:11px;'>Gerado por: {st.session_state.usuario} · {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+            <h2>Análise de Risco</h2>{r_html}
+            <h2>Equipamentos TI/OT</h2>{e_html}
+            <h2>PDCA</h2>{p_html}
+            <script>window.onload=function(){{window.print();}}</script>
             </body></html>"""
-            st.components.v1.html(html_completo, height=500)
+            st.components.v1.html(html_full, height=500)
 
-# ─── Atualizar sidebar com os riscos calculados ───
-with sidebar_risk_placeholder:
+# ──────────────────────────────────────────────
+# SIDEBAR - RISCOS (ATUALIZADO)
+# ──────────────────────────────────────────────
+with sidebar_ph:
     st.markdown(f"""
-    <div class='sidebar-section'>
-        <div class='sidebar-section-label'>Visão de Riscos</div>
-    </div>
-    <div class='risk-stat'>
-        <span class='risk-stat-label'>🔴 Alto</span>
-        <span class='risk-stat-badge badge-alto'>{qtd_alto}</span>
-    </div>
-    <div class='risk-stat'>
-        <span class='risk-stat-label'>🟡 Médio</span>
-        <span class='risk-stat-badge badge-medio'>{qtd_medio}</span>
-    </div>
-    <div class='risk-stat'>
-        <span class='risk-stat-label'>🟢 Baixo</span>
-        <span class='risk-stat-badge badge-baixo'>{qtd_baixo}</span>
-    </div>
-    <br>
+    <div class='sb-badge sb-red'>   <span>🔴 Alto</span>  <span class='sb-num'>{qtd_alto}</span>  </div>
+    <div class='sb-badge sb-yellow'><span>🟡 Médio</span> <span class='sb-num'>{qtd_medio}</span> </div>
+    <div class='sb-badge sb-green'> <span>🟢 Baixo</span> <span class='sb-num'>{qtd_baixo}</span> </div>
     """, unsafe_allow_html=True)
