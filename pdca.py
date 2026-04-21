@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import sqlite3
-import os
+from supabase import create_client, Client
+import json
 
 st.set_page_config(
     layout="wide",
@@ -12,136 +12,146 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────
-# BANCO DE DADOS SQLITE (PERMANENTE)
+# CONFIGURAÇÃO DO SUPABASE (SUAS CREDENCIAIS)
 # ──────────────────────────────────────────────
-DB_NAME = "secureops.db"
+SUPABASE_URL = "https://bhwqrfolkusuzvwavanc.supabase.co"
+SUPABASE_KEY = "sb_publishable_J_z2LmOOVT0cmJuYhqW0qg_9iAEHt4u"
 
-def init_database():
-    """Inicializa o banco de dados"""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    # Tabela de histórico
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS historico (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tipo TEXT NOT NULL,
-            dados TEXT,
-            usuario TEXT NOT NULL,
-            data TEXT NOT NULL,
-            timestamp TEXT NOT NULL
-        )
-    ''')
-    
-    # Tabela de configurações
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS configuracoes (
-            chave TEXT PRIMARY KEY,
-            valor TEXT,
-            atualizado_em TEXT
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-
-def salvar_historico_db(tipo, dados, usuario):
-    """Salva histórico no SQLite"""
+def init_supabase():
+    """Inicializa conexão com Supabase"""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        st.error(f"Erro ao conectar Supabase: {e}")
+        return None
+
+# ──────────────────────────────────────────────
+# FUNÇÕES DO SUPABASE
+# ──────────────────────────────────────────────
+def salvar_riscos_supabase(supabase, df_riscos, usuario):
+    """Salva análise de risco no Supabase"""
+    if not supabase:
+        return False
+    try:
+        # Limpar dados antigos
+        supabase.table("riscos_atuais").delete().neq("id", 0).execute()
         
-        # Converter dados para string
-        dados_str = str(dados)
+        # Inserir novos dados
+        for _, row in df_riscos.iterrows():
+            supabase.table("riscos_atuais").insert({
+                "ativo": row["Ativo"],
+                "localidade": row["Localidade"],
+                "ameaca": row["Ameaça"],
+                "vulnerabilidade": row["Vulnerabilidade"],
+                "probabilidade": row["Probabilidade"],
+                "impacto": row["Impacto"],
+                "nivel_risco": row["Nível do Risco"],
+                "usuario": usuario
+            }).execute()
         
-        cursor.execute('''
-            INSERT INTO historico (tipo, dados, usuario, data, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            tipo,
-            dados_str[:5000],  # Limitar tamanho
-            usuario,
-            datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
-            datetime.now().isoformat()
-        ))
+        # Salvar no histórico
+        supabase.table("historico_seguranca").insert({
+            "tipo": "analise_risco",
+            "dados": json.dumps(df_riscos.to_dict('records')),
+            "usuario": usuario
+        }).execute()
         
-        conn.commit()
-        conn.close()
         return True
     except Exception as e:
-        st.error(f"Erro ao salvar: {e}")
+        st.error(f"Erro ao salvar riscos: {e}")
         return False
 
-def carregar_historico_db(tipo=None):
-    """Carrega histórico do SQLite"""
+def carregar_riscos_supabase(supabase):
+    """Carrega análise de risco do Supabase"""
+    if not supabase:
+        return None
     try:
-        conn = sqlite3.connect(DB_NAME)
-        
-        if tipo and tipo != "Todos":
-            query = "SELECT id, tipo, usuario, data FROM historico WHERE tipo = ? ORDER BY id DESC"
-            df = pd.read_sql_query(query, conn, params=(tipo,))
-        else:
-            query = "SELECT id, tipo, usuario, data FROM historico ORDER BY id DESC"
-            df = pd.read_sql_query(query, conn)
-        
-        conn.close()
-        return df
+        response = supabase.table("riscos_atuais").select("*").execute()
+        if response.data:
+            df = pd.DataFrame(response.data)
+            df = df.rename(columns={
+                "ativo": "Ativo",
+                "localidade": "Localidade",
+                "ameaca": "Ameaça",
+                "vulnerabilidade": "Vulnerabilidade",
+                "probabilidade": "Probabilidade",
+                "impacto": "Impacto",
+                "nivel_risco": "Nível do Risco"
+            })
+            return df[["Ativo", "Localidade", "Ameaça", "Vulnerabilidade", "Probabilidade", "Impacto", "Nível do Risco"]]
+        return None
     except Exception as e:
+        st.error(f"Erro ao carregar riscos: {e}")
+        return None
+
+def salvar_equipamentos_supabase(supabase, df_eq, usuario):
+    """Salva equipamentos no Supabase"""
+    if not supabase:
+        return False
+    try:
+        supabase.table("equipamentos").delete().neq("id", 0).execute()
+        
+        for _, row in df_eq.iterrows():
+            supabase.table("equipamentos").insert({
+                "equipamento": row["Equipamento"],
+                "tipo": row["Tipo"],
+                "localidade": row["Localidade"],
+                "fabricante": row["Fabricante"],
+                "modelo": row["Modelo"],
+                "status": row["Status"],
+                "motivo": row.get("Motivo", ""),
+                "usuario": usuario
+            }).execute()
+        
+        supabase.table("historico_seguranca").insert({
+            "tipo": "equipamentos",
+            "dados": json.dumps(df_eq.to_dict('records')),
+            "usuario": usuario
+        }).execute()
+        
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar equipamentos: {e}")
+        return False
+
+def carregar_equipamentos_supabase(supabase):
+    """Carrega equipamentos do Supabase"""
+    if not supabase:
+        return None
+    try:
+        response = supabase.table("equipamentos").select("*").execute()
+        if response.data:
+            df = pd.DataFrame(response.data)
+            df = df.rename(columns={
+                "equipamento": "Equipamento",
+                "tipo": "Tipo",
+                "localidade": "Localidade",
+                "fabricante": "Fabricante",
+                "modelo": "Modelo",
+                "status": "Status",
+                "motivo": "Motivo"
+            })
+            return df[["Equipamento", "Tipo", "Localidade", "Fabricante", "Modelo", "Status", "Motivo"]]
+        return None
+    except Exception as e:
+        st.error(f"Erro ao carregar equipamentos: {e}")
+        return None
+
+def carregar_historico_supabase(supabase, tipo=None):
+    """Carrega histórico do Supabase"""
+    if not supabase:
         return pd.DataFrame()
-
-def limpar_historico_db():
-    """Limpa todo o histórico"""
     try:
-        conn = sqlite3.connect(DB_NAME)
-        conn.execute("DELETE FROM historico")
-        conn.commit()
-        conn.close()
-        return True
+        query = supabase.table("historico_seguranca").select("id,tipo,usuario,data").order("id", desc=True).limit(50)
+        if tipo and tipo != "Todos":
+            query = query.eq("tipo", tipo)
+        response = query.execute()
+        if response.data:
+            return pd.DataFrame(response.data)
+        return pd.DataFrame()
     except Exception as e:
-        return False
-
-def salvar_risco_db(df_risco):
-    """Salva análise de risco atual"""
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        df_risco.to_sql('risco_atual', conn, if_exists='replace', index=False)
-        conn.close()
-        return True
-    except:
-        return False
-
-def carregar_risco_db():
-    """Carrega análise de risco salva"""
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        df = pd.read_sql_query("SELECT * FROM risco_atual", conn)
-        conn.close()
-        return df
-    except:
-        return None
-
-def salvar_equipamento_db(df_eq):
-    """Salva equipamentos atuais"""
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        df_eq.to_sql('equipamentos_atual', conn, if_exists='replace', index=False)
-        conn.close()
-        return True
-    except:
-        return False
-
-def carregar_equipamento_db():
-    """Carrega equipamentos salvos"""
-    try:
-        conn = sqlite3.connect(DB_NAME)
-        df = pd.read_sql_query("SELECT * FROM equipamentos_atual", conn)
-        conn.close()
-        return df
-    except:
-        return None
-
-# Inicializar banco
-init_database()
+        st.error(f"Erro ao carregar histórico: {e}")
+        return pd.DataFrame()
 
 # ──────────────────────────────────────────────
 # AUTH
@@ -169,48 +179,32 @@ def fazer_logout():
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 * { font-family: 'Inter', sans-serif !important; }
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; font-size: 14px; color: #1e293b; }
-
-[data-testid="stAppViewContainer"] { background: #f8fafc; }
 [data-testid="stSidebar"] { background: #f1f5f9 !important; border-right: 1px solid #e2e8f0 !important; }
-
 .block-container { padding: 1.5rem 2rem 2rem !important; }
-
-.sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; padding: 1rem 0 0.2rem; }
+.sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; }
 .sb-sub { font-size: 11px; color: #64748b; }
 .sb-div { border-top: 1px solid #e2e8f0; margin: 0.8rem 0; }
 .sb-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748b; }
-.sb-user { font-size: 14px; font-weight: 600; color: #0f172a; }
-.sb-role { font-size: 11px; color: #64748b; }
 .sb-badge { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; }
 .sb-red { background: #fee2e2; color: #dc2626; }
 .sb-yellow { background: #fef3c7; color: #d97706; }
 .sb-green { background: #dcfce7; color: #16a34a; }
 .sb-num { font-size: 18px; font-weight: 700; }
-
-.stTabs [data-baseweb="tab-list"] { gap: 0; background: #e2e8f0; padding: 4px; border-radius: 10px; }
-.stTabs [data-baseweb="tab"] { padding: 6px 20px; font-size: 13px; color: #64748b; }
-.stTabs [aria-selected="true"] { background: #fff; color: #0f172a; }
-
 .page-title { font-size: 24px; font-weight: 700; color: #0f172a; }
 .page-sub { font-size: 13px; color: #64748b; margin-bottom: 1.2rem; }
-
-.sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #94a3b8; margin: 1.5rem 0 0.8rem; border-bottom: 1px solid #e2e8f0; }
-
+.sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #94a3b8; border-bottom: 1px solid #e2e8f0; margin: 1.5rem 0 0.8rem; }
 .mcard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
 .mcard-num { font-size: 32px; font-weight: 700; }
 .mcard-lbl { font-size: 12px; color: #64748b; }
 .c-blue { color: #2563eb; }
 .c-red { color: #dc2626; }
 .c-green { color: #16a34a; }
-
+.c-yellow { color: #d97706; }
 .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
 .chart-title { font-size: 14px; font-weight: 600; border-left: 3px solid #2563eb; padding-left: 10px; }
 .sbar-track { height: 32px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; }
 .sbar-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; }
-
 .stButton > button { background: #0f172a !important; color: #fff !important; border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -252,10 +246,6 @@ def nivel_risco(prob, imp):
     else:
         return "🔴 Alto"
 
-CORES_RISCO = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
-CORES_TIPO = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
-CORES_STATUS = {"Ativo": "#16a34a", "Em Manutenção": "#d97706", "Desativado": "#dc2626", "Reserva": "#64748b"}
-
 def stacked_bar(df, title, cores, col_group, col_stack):
     if df.empty:
         return "<div class='chart-card'>Sem dados</div>"
@@ -291,20 +281,30 @@ def sec(t):
     st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
+# INICIALIZAR SUPABASE
+# ──────────────────────────────────────────────
+supabase = init_supabase()
+
+if supabase:
+    st.success("✅ Conectado ao Supabase - Dados salvos na nuvem!")
+else:
+    st.error("❌ Erro ao conectar ao Supabase")
+
+# ──────────────────────────────────────────────
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
     st.markdown("<div class='sb-logo'>🛡️ SecureOps</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-sub'>Gestão de Segurança</div>")
-    st.markdown("<hr class='sb-div'>")
-    st.markdown(f"<div class='sb-user'>{st.session_state.usuario}</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-role'>Administrador</div>")
-    st.markdown("<hr class='sb-div'>")
-    st.markdown("<div class='sb-lbl'>Resumo</div>")
+    st.markdown("<div class='sb-sub'>Gestão de Segurança</div>", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    st.markdown(f"**{st.session_state.usuario}**", unsafe_allow_html=True)
+    st.markdown("<div class='sb-role'>Administrador</div>", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-lbl'>Resumo</div>", unsafe_allow_html=True)
     sidebar_ph = st.empty()
-    st.markdown("<hr class='sb-div'>")
-    st.markdown(f"<div class='sb-lbl'>📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
-    st.markdown("<hr class='sb-div'>")
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    st.markdown(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     
     if st.button("🚪 Sair", use_container_width=True):
         fazer_logout()
@@ -312,18 +312,20 @@ with st.sidebar:
 # ──────────────────────────────────────────────
 # CABEÇALHO
 # ──────────────────────────────────────────────
-st.markdown(f"""
-<div class='page-title'>SecureOps - Gestão de Segurança</div>
-<div class='page-sub'>PDCA + Análise de Risco · Dados salvos em banco local</div>
-""", unsafe_allow_html=True)
+st.markdown("<div class='page-title'>SecureOps - Gestão de Segurança</div>", unsafe_allow_html=True)
+st.markdown("<div class='page-sub'>PDCA + Análise de Risco com Supabase (Dados na Nuvem)</div>", unsafe_allow_html=True)
 
-# Carregar dados salvos ou criar novos
-dados_risco_carregado = carregar_risco_db()
-dados_eq_carregado = carregar_equipamento_db()
+# Carregar dados do Supabase ou criar padrão
+if supabase:
+    dados_risco_carregado = carregar_riscos_supabase(supabase)
+    dados_eq_carregado = carregar_equipamentos_supabase(supabase)
+else:
+    dados_risco_carregado = None
+    dados_eq_carregado = None
 
-if dados_risco_carregado is not None:
+if dados_risco_carregado is not None and not dados_risco_carregado.empty:
     edited_risco = dados_risco_carregado
-    st.info("📀 Dados de risco carregados do banco")
+    st.info("📀 Dados carregados do Supabase (nuvem)")
 else:
     edited_risco = pd.DataFrame({
         "Ativo": ["Cabos na sala", "Pen drive", "Servidor internet", "Switch", "Firewall", "Router"],
@@ -335,29 +337,25 @@ else:
     })
     edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
-if dados_eq_carregado is not None:
+if dados_eq_carregado is not None and not dados_eq_carregado.empty:
     edited_eq = dados_eq_carregado
-    st.info("💾 Dados de equipamentos carregados do banco")
 else:
     edited_eq = pd.DataFrame({
-        "Equipamento": ["Firewall", "Switch", "Router", "Servidor", "Storage", "Access Point", "Patch Panel"],
-        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infra"],
-        "Localidade": ["DC Rack 02", "DC Rack 01", "DC Rack 01", "DC Rack 03", "DC Rack 04", "Sala 210", "Sala server"],
+        "Equipamento": ["Firewall Fortinet", "Switch Core Huawei", "Router Cisco", "Servidor Dell", "Storage EMC", "Access Point", "Patch Panel"],
+        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infraestrutura"],
+        "Localidade": ["DC Rack 02", "DC Rack 01", "DC Rack 01", "DC Rack 03", "DC Rack 04", "Sala 210", "Sala servidores"],
         "Fabricante": ["Fortinet", "Huawei", "Cisco", "Dell", "EMC", "Ubiquiti", "Intelbras"],
         "Modelo": ["FG-100F", "S12700", "ISR4321", "R750", "XT380", "U6-LR", "CAT6"],
         "Status": ["Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo"],
         "Motivo": ["", "", "", "", "", "", ""],
     })
 
-tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
+tab_dados, tab_graficos, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "📜 Histórico"])
 
 # ══════════════════════════════════════════════
 # TAB DADOS
 # ══════════════════════════════════════════════
 with tab_dados:
-    st.markdown("### 📋 Gestão de Dados")
-    st.success("💾 **Dados são salvos automaticamente no banco SQLite!** Feche e reabra que os dados continuam.")
-    
     sec("Análise de Risco")
     edited_risco = st.data_editor(
         edited_risco, use_container_width=True, num_rows="dynamic",
@@ -378,14 +376,19 @@ with tab_dados:
         }, hide_index=True,
     )
 
-    # Botões de salvamento
-    col_s1, col_s2, col_s3 = st.columns(3)
+    st.markdown("---")
+    st.markdown("### 💾 Salvar no Supabase (Nuvem)")
+    
+    col_s1, col_s2 = st.columns(2)
     with col_s1:
-        if st.button("💾 SALVAR DADOS NO BANCO", use_container_width=True):
-            salvar_risco_db(edited_risco)
-            salvar_equipamento_db(edited_eq)
-            salvar_historico_db("analise_risco", edited_risco, st.session_state.usuario)
-            st.success("✅ Dados salvos permanentemente!")
+        if st.button("☁️ Salvar no Supabase", use_container_width=True):
+            if supabase:
+                if salvar_riscos_supabase(supabase, edited_risco, st.session_state.usuario):
+                    st.success("✅ Riscos salvos na nuvem!")
+                if salvar_equipamentos_supabase(supabase, edited_eq, st.session_state.usuario):
+                    st.success("✅ Equipamentos salvos na nuvem!")
+            else:
+                st.error("❌ Supabase não conectado")
     
     with col_s2:
         if st.button("📥 Exportar Excel", use_container_width=True):
@@ -393,71 +396,52 @@ with tab_dados:
                 edited_risco.to_excel(writer, sheet_name="Riscos", index=False)
                 edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
             st.success("Excel exportado!")
-    
-    with col_s3:
-        if st.button("📊 Ver Métricas", use_container_width=True):
-            st.metric("Total Riscos", len(edited_risco))
-            st.metric("Riscos Altos", len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"]))
-            st.metric("Equipamentos", len(edited_eq))
 
 # ══════════════════════════════════════════════
 # TAB GRÁFICOS
 # ══════════════════════════════════════════════
 with tab_graficos:
     st.markdown("### 📊 Dashboard")
+    
     col1, col2, col3, col4 = st.columns(4)
-    with col1: st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
-    with col2: st.markdown(mcard(len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"]), "Riscos Altos", "c-red"), unsafe_allow_html=True)
-    with col3: st.markdown(mcard(len(edited_eq), "Equipamentos", "c-green"), unsafe_allow_html=True)
-    with col4: st.markdown(mcard(edited_eq["Fabricante"].nunique(), "Fabricantes", "c-blue"), unsafe_allow_html=True)
+    with col1:
+        st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
+    with col2:
+        st.markdown(mcard(len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"]), "Riscos Altos", "c-red"), unsafe_allow_html=True)
+    with col3:
+        st.markdown(mcard(len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"]), "Riscos Médios", "c-yellow"), unsafe_allow_html=True)
+    with col4:
+        st.markdown(mcard(len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"]), "Riscos Baixos", "c-green"), unsafe_allow_html=True)
     
     st.markdown("---")
+    
+    CORES_RISCO = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
+    CORES_TIPO = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
+    CORES_STATUS = {"Ativo": "#16a34a", "Em Manutenção": "#d97706", "Desativado": "#dc2626", "Reserva": "#64748b"}
+    
     st.markdown(stacked_bar(edited_risco, "Riscos por Localidade", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
     st.markdown(stacked_bar(edited_eq, "Equipamentos por Localidade", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════
-# TAB PDCA
-# ══════════════════════════════════════════════
-with tab_pdca:
-    st.markdown("### 🔄 PDCA")
-    st.info("Preencha e clique em salvar para manter os dados")
-    
-    fases = ["1.Contexto", "2.Liderança", "3.Planejamento", "4.Suporte", "5.Operação", "6.Avaliação", "7.Melhoria"]
-    linhas = ["🎯 Objetivo", "⚙️ Ação", "📊 KPI", "🚩 Evidência"]
-    
-    cols = st.columns(7)
-    dados_pdca = {}
-    
-    for i, fase in enumerate(fases):
-        with cols[i]:
-            st.markdown(f"**{fase}**")
-            for j, linha in enumerate(linhas):
-                key = f"pdca_{i}_{j}"
-                dados_pdca[(i, j)] = st.text_area(linha, key=key, height=80, placeholder="...")
-    
-    if st.button("💾 Salvar PDCA", use_container_width=True):
-        salvar_historico_db("pdca", str(dados_pdca), st.session_state.usuario)
-        st.success("PDCA salvo no histórico!")
+    st.markdown(stacked_bar(edited_eq, "Status dos Equipamentos", CORES_STATUS, "Status", "Tipo"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 # TAB HISTÓRICO
 # ══════════════════════════════════════════════
 with tab_historico:
-    st.markdown("### 📜 Histórico")
+    st.markdown("### 📜 Histórico de Alterações")
     
-    tipo_filtro = st.selectbox("Filtrar", ["Todos", "analise_risco", "equipamentos", "pdca"])
-    df_hist = carregar_historico_db(None if tipo_filtro == "Todos" else tipo_filtro)
+    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos"])
     
-    if not df_hist.empty:
-        st.dataframe(df_hist, use_container_width=True, hide_index=True)
-        if st.button("🗑️ Limpar Histórico"):
-            limpar_historico_db()
-            st.rerun()
+    if supabase:
+        df_hist = carregar_historico_supabase(supabase, tipo_filtro)
+        if not df_hist.empty:
+            st.dataframe(df_hist, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum registro no histórico. Clique em 'Salvar no Supabase' para começar.")
     else:
-        st.info("Nenhum registro")
+        st.warning("Conecte ao Supabase para ver o histórico")
 
 # ──────────────────────────────────────────────
-# SIDEBAR ATUALIZAÇÃO
+# SIDEBAR ATUALIZADA
 # ──────────────────────────────────────────────
 with sidebar_ph:
     alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
@@ -469,4 +453,4 @@ with sidebar_ph:
     <div class='sb-badge sb-green'>🟢 Baixo <span class='sb-num'>{baixo}</span></div>
     """, unsafe_allow_html=True)
 
-st.success("✅ **Dados salvos permanentemente em SQLite!** Feche e reabra o app que os dados continuam.")
+st.success("✅ **Sistema completo!** Dados salvos permanentemente no Supabase na nuvem!")
