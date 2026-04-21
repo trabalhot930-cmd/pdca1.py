@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
-from plotly.subplots import make_subplots
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # -------------------------------
 # CONFIGURAÇÃO DA PÁGINA
@@ -171,91 +170,77 @@ with tab1:
         lambda row: nivel_risco(row["Probabilidade"], row["Impacto"]), axis=1
     )
 
-    # ========== GRÁFICOS ==========
+    # ========== GRÁFICOS COM MATPLOTLIB ==========
     st.markdown("---")
     st.markdown("## 📈 Dashboard de Riscos por Localidade")
     
-    # Preparar dados para gráficos
-    risco_por_local = edited_risco.groupby(['Localidade', 'Nível do risco']).size().reset_index(name='Quantidade')
+    # Configurar estilo dos gráficos
+    sns.set_style("whitegrid")
+    plt.rcParams['figure.figsize'] = [10, 6]
     
     # Gráfico 1: Barras empilhadas por localidade
     col_graf1, col_graf2 = st.columns(2)
     
     with col_graf1:
-        fig1 = px.bar(
-            risco_por_local,
-            x='Localidade',
-            y='Quantidade',
-            color='Nível do risco',
-            title='📊 Riscos por Localidade (Distribuição)',
-            color_discrete_map={'🟢 Baixo': '#4CAF50', '🟡 Médio': '#FFC107', '🔴 Alto': '#F44336'},
-            text='Quantidade',
-            height=400
-        )
-        fig1.update_layout(
-            xaxis_title="Localidade",
-            yaxis_title="Quantidade de Riscos",
-            showlegend=True,
-            bargap=0.2
-        )
-        fig1.update_traces(textposition='inside')
-        st.plotly_chart(fig1, use_container_width=True)
+        st.markdown("### 📊 Riscos por Localidade")
+        # Preparar dados para gráfico empilhado
+        risco_summary = edited_risco.groupby(['Localidade', 'Nível do risco']).size().unstack(fill_value=0)
+        
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
+        risco_summary.plot(kind='bar', stacked=True, ax=ax1, color=['#4CAF50', '#FFC107', '#F44336'])
+        ax1.set_title('Distribuição de Riscos por Localidade', fontsize=14, fontweight='bold')
+        ax1.set_xlabel('Localidade', fontsize=12)
+        ax1.set_ylabel('Quantidade de Riscos', fontsize=12)
+        ax1.legend(title='Nível do Risco', bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax1.tick_params(axis='x', rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig1)
     
     with col_graf2:
-        # Gráfico 2: Pizza - distribuição geral
+        st.markdown("### 🎯 Distribuição Geral")
         geral_riscos = edited_risco['Nível do risco'].value_counts()
-        fig2 = px.pie(
-            values=geral_riscos.values,
-            names=geral_riscos.index,
-            title='🎯 Distribuição Geral de Riscos',
-            color_discrete_map={'🟢 Baixo': '#4CAF50', '🟡 Médio': '#FFC107', '🔴 Alto': '#F44336'},
-            hole=0.3,
-            height=400
-        )
-        fig2.update_traces(textposition='inside', textinfo='percent+label')
-        st.plotly_chart(fig2, use_container_width=True)
+        fig2, ax2 = plt.subplots(figsize=(8, 6))
+        cores = {'🟢 Baixo': '#4CAF50', '🟡 Médio': '#FFC107', '🔴 Alto': '#F44336'}
+        cores_plot = [cores[risco] for risco in geral_riscos.index]
+        wedges, texts, autotexts = ax2.pie(geral_riscos.values, labels=geral_riscos.index, autopct='%1.1f%%', colors=cores_plot, startangle=90)
+        ax2.set_title('Distribuição Geral de Riscos', fontsize=14, fontweight='bold')
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontweight('bold')
+        st.pyplot(fig2)
     
-    # Gráfico 3: Mapa de calor de riscos
+    # Gráfico 3: Total de riscos por localidade
     st.markdown("---")
     col_graf3, col_graf4 = st.columns(2)
     
     with col_graf3:
-        # Matriz Probabilidade x Impacto
-        matriz_risco = pd.crosstab(
-            edited_risco['Probabilidade'], 
-            edited_risco['Impacto'],
-            values=edited_risco['Nível do risco'],
-            aggfunc=lambda x: len(x),
-            fill_value=0
-        )
+        st.markdown("### 🔥 Matriz Probabilidade x Impacto")
+        matriz_risco = pd.crosstab(edited_risco['Probabilidade'], edited_risco['Impacto'], values=edited_risco['Nível do risco'], aggfunc=lambda x: len(x), fill_value=0)
         
-        fig3 = px.imshow(
-            matriz_risco,
-            text_auto=True,
-            title='🔥 Matriz de Calor (Prob x Impacto)',
-            color_continuous_scale=['#4CAF50', '#FFC107', '#F44336'],
-            aspect='auto',
-            height=400
-        )
-        fig3.update_layout(xaxis_title="Impacto", yaxis_title="Probabilidade")
-        st.plotly_chart(fig3, use_container_width=True)
+        fig3, ax3 = plt.subplots(figsize=(8, 6))
+        sns.heatmap(matriz_risco, annot=True, fmt='d', cmap='YlOrRd', ax=ax3, cbar_kws={'label': 'Quantidade'})
+        ax3.set_title('Matriz de Calor: Probabilidade vs Impacto', fontsize=12, fontweight='bold')
+        ax3.set_xlabel('Impacto', fontsize=10)
+        ax3.set_ylabel('Probabilidade', fontsize=10)
+        st.pyplot(fig3)
     
     with col_graf4:
-        # Gráfico de radar por localidade
-        localidades_risco = edited_risco.groupby('Localidade').size().reset_index(name='Total')
-        fig4 = px.bar(
-            localidades_risco,
-            x='Localidade',
-            y='Total',
-            title='🏢 Total de Riscos por Localidade',
-            color='Total',
-            color_continuous_scale='Reds',
-            text='Total',
-            height=400
-        )
-        fig4.update_layout(xaxis_title="Localidade", yaxis_title="Total de Riscos")
-        fig4.update_traces(textposition='outside')
-        st.plotly_chart(fig4, use_container_width=True)
+        st.markdown("### 🏢 Total de Riscos por Localidade")
+        total_local = edited_risco.groupby('Localidade').size().sort_values(ascending=True)
+        
+        fig4, ax4 = plt.subplots(figsize=(10, 6))
+        bars = ax4.barh(total_local.index, total_local.values, color='#E53935', alpha=0.7)
+        ax4.set_title('Total de Riscos por Localidade', fontsize=14, fontweight='bold')
+        ax4.set_xlabel('Quantidade de Riscos', fontsize=12)
+        ax4.set_ylabel('Localidade', fontsize=12)
+        
+        # Adicionar valores nas barras
+        for i, bar in enumerate(bars):
+            width = bar.get_width()
+            ax4.text(width, bar.get_y() + bar.get_height()/2, f'{int(width)}', ha='left', va='center', fontweight='bold')
+        
+        plt.tight_layout()
+        st.pyplot(fig4)
     
     # Estatísticas
     st.markdown("---")
@@ -325,92 +310,67 @@ with tab2:
         st.metric("🔒 Equipamentos Segurança", qtd_seguranca)
     with col_eq4:
         # Equipamentos com manutenção próxima (30 dias)
-        hoje = datetime.now().date()
         try:
             edited_equipamentos["Próxima Manutenção"] = pd.to_datetime(edited_equipamentos["Próxima Manutenção"]).dt.date
-            prox_manut = len(edited_equipamentos[
-                (edited_equipamentos["Próxima Manutenção"] >= hoje) & 
-                (edited_equipamentos["Próxima Manutenção"] <= hoje + pd.Timedelta(days=30))
-            ])
-            st.metric("⚠️ Manutenção (30 dias)", prox_manut, delta="Agendar" if prox_manut > 0 else None)
+            prox_manut = len(edited_equipamentos[edited_equipamentos["Próxima Manutenção"] >= datetime.now().date()])
+            st.metric("⚠️ Próx. Manutenção", prox_manut)
         except:
-            st.metric("⚠️ Manutenção (30 dias)", 0)
+            st.metric("⚠️ Próx. Manutenção", 0)
     
-    # Gráficos de equipamentos
+    # Gráficos de equipamentos com matplotlib
     st.markdown("---")
     col_eq_graf1, col_eq_graf2 = st.columns(2)
     
     with col_eq_graf1:
-        # Distribuição por tipo
+        st.markdown("### 📊 Distribuição por Tipo")
         tipo_count = edited_equipamentos["Tipo"].value_counts()
-        fig_eq1 = px.pie(
-            values=tipo_count.values,
-            names=tipo_count.index,
-            title="📊 Distribuição por Tipo de Equipamento",
-            hole=0.3,
-            color_discrete_sequence=px.colors.qualitative.Set3
-        )
-        st.plotly_chart(fig_eq1, use_container_width=True)
+        fig_eq1, ax_eq1 = plt.subplots(figsize=(8, 6))
+        cores_eq = plt.cm.Set3(range(len(tipo_count)))
+        wedges, texts, autotexts = ax_eq1.pie(tipo_count.values, labels=tipo_count.index, autopct='%1.1f%%', colors=cores_eq)
+        ax_eq1.set_title('Equipamentos por Tipo', fontsize=14, fontweight='bold')
+        st.pyplot(fig_eq1)
     
     with col_eq_graf2:
-        # Equipamentos por localidade
+        st.markdown("### 📍 Equipamentos por Localidade")
         local_count = edited_equipamentos["Localidade"].value_counts().head(10)
-        fig_eq2 = px.bar(
-            x=local_count.values,
-            y=local_count.index,
-            orientation='h',
-            title="📍 Equipamentos por Localidade",
-            color=local_count.values,
-            color_continuous_scale='Blues',
-            text=local_count.values
-        )
-        fig_eq2.update_layout(xaxis_title="Quantidade", yaxis_title="Localidade", height=400)
-        fig_eq2.update_traces(textposition='outside')
-        st.plotly_chart(fig_eq2, use_container_width=True)
+        fig_eq2, ax_eq2 = plt.subplots(figsize=(10, 6))
+        bars = ax_eq2.barh(local_count.index, local_count.values, color='#1E88E5', alpha=0.7)
+        ax_eq2.set_title('Top Localidades', fontsize=14, fontweight='bold')
+        ax_eq2.set_xlabel('Quantidade', fontsize=12)
+        for i, bar in enumerate(bars):
+            width = bar.get_width()
+            ax_eq2.text(width, bar.get_y() + bar.get_height()/2, f'{int(width)}', ha='left', va='center')
+        plt.tight_layout()
+        st.pyplot(fig_eq2)
     
     col_eq_graf3, col_eq_graf4 = st.columns(2)
     
     with col_eq_graf3:
-        # Status dos equipamentos
+        st.markdown("### ⚙️ Status dos Equipamentos")
         status_count = edited_equipamentos["Status"].value_counts()
-        fig_eq3 = px.bar(
-            x=status_count.index,
-            y=status_count.values,
-            title="⚙️ Status dos Equipamentos",
-            color=status_count.values,
-            color_continuous_scale='RdYlGn',
-            text=status_count.values
-        )
-        fig_eq3.update_layout(xaxis_title="Status", yaxis_title="Quantidade")
-        fig_eq3.update_traces(textposition='outside')
-        st.plotly_chart(fig_eq3, use_container_width=True)
+        fig_eq3, ax_eq3 = plt.subplots(figsize=(8, 6))
+        cores_status = ['#4CAF50' if s == 'Ativo' else '#FFC107' if s == 'Em Manutenção' else '#F44336' for s in status_count.index]
+        bars = ax_eq3.bar(status_count.index, status_count.values, color=cores_status, alpha=0.7)
+        ax_eq3.set_title('Status dos Equipamentos', fontsize=14, fontweight='bold')
+        ax_eq3.set_ylabel('Quantidade', fontsize=12)
+        for bar in bars:
+            height = bar.get_height()
+            ax_eq3.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}', ha='center', va='bottom')
+        st.pyplot(fig_eq3)
     
     with col_eq_graf4:
-        # Fabricantes
+        st.markdown("### 🏭 Equipamentos por Fabricante")
         fabricante_count = edited_equipamentos["Fabricante"].value_counts().head(8)
-        fig_eq4 = px.bar(
-            x=fabricante_count.index,
-            y=fabricante_count.values,
-            title="🏭 Equipamentos por Fabricante",
-            color=fabricante_count.values,
-            color_continuous_scale='Viridis',
-            text=fabricante_count.values
-        )
-        fig_eq4.update_layout(xaxis_title="Fabricante", yaxis_title="Quantidade")
-        fig_eq4.update_traces(textposition='outside')
-        st.plotly_chart(fig_eq4, use_container_width=True)
-    
-    # Exportar equipamentos
-    col_export1, col_export2 = st.columns(2)
-    with col_export1:
-        if st.button("📥 Exportar Equipamentos (CSV)", use_container_width=True):
-            csv_eq = edited_equipamentos.to_csv(index=False)
-            st.download_button(
-                label="📎 Baixar CSV",
-                data=csv_eq,
-                file_name=f"equipamentos_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv"
-            )
+        fig_eq4, ax_eq4 = plt.subplots(figsize=(10, 6))
+        bars = ax_eq4.bar(fabricante_count.index, fabricante_count.values, color='#FF9800', alpha=0.7)
+        ax_eq4.set_title('Top Fabricantes', fontsize=14, fontweight='bold')
+        ax_eq4.set_ylabel('Quantidade', fontsize=12)
+        ax_eq4.tick_params(axis='x', rotation=45)
+        for bar in bars:
+            height = bar.get_height()
+            ax_eq4.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}', ha='center', va='bottom')
+        plt.tight_layout()
+        st.pyplot(fig_eq4)
 
 # ======================== TAB 3: PDCA ========================
 with tab3:
@@ -480,11 +440,11 @@ with tab3:
     
     # Botões de ação do PDCA
     st.markdown("---")
-    col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 2])
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
     
     with col_btn1:
         if st.button("🖨️ Imprimir Relatório", use_container_width=True):
-            # Gerar HTML completo com todos os dados
+            # Gerar HTML completo
             risco_html = edited_risco.to_html(index=False, escape=False)
             equip_html = edited_equipamentos.to_html(index=False, escape=False)
             
@@ -555,14 +515,13 @@ with tab3:
                 )
 
 # -------------------------------
-# SIDEBAR COM INFORMAÇÕES
+# SIDEBAR
 # -------------------------------
 with st.sidebar:
     st.image("https://img.icons8.com/color/96/000000/security-checked--v1.png", width=80)
     st.markdown("## 📋 Painel de Controle")
     st.markdown("---")
     
-    # Resumo rápido
     st.markdown("### 🎯 Resumo Riscos")
     risco_alto = len(edited_risco[edited_risco["Nível do risco"] == "🔴 Alto"])
     risco_medio = len(edited_risco[edited_risco["Nível do risco"] == "🟡 Médio"])
@@ -577,14 +536,13 @@ with st.sidebar:
     st.markdown("### 🖥️ Equipamentos")
     st.markdown(f"- **Total:** {len(edited_equipamentos)}")
     st.markdown(f"- **Ativos:** {len(edited_equipamentos[edited_equipamentos['Status'] == 'Ativo'])}")
-    st.markdown(f"- **Segurança:** {len(edited_equipamentos[edited_equipamentos['Tipo'] == 'Segurança'])}")
     
     st.markdown("---")
-    st.markdown("### 📍 Top Localidades")
+    st.markdown("### 📍 Localidades com Risco")
     for loc in edited_risco["Localidade"].value_counts().head(3).index:
-        st.markdown(f"- {loc[:30]}...")
+        st.markdown(f"- {loc[:25]}...")
     
     st.markdown("---")
-    st.caption(f"🕐 Última atualização: {datetime.now().strftime('%H:%M:%S')}")
+    st.caption(f"🕐 Atualizado: {datetime.now().strftime('%H:%M:%S')}")
 
-st.success("✅ **Sistema completo!** Análise de risco com gráficos + Gestão de equipamentos + PDCA alinhado")
+st.success("✅ **Sistema completo!** Gráficos com matplotlib + Gestão de equipamentos + PDCA alinhado")
