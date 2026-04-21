@@ -30,7 +30,7 @@ def fazer_logout():
     st.rerun()
 
 # ──────────────────────────────────────────────
-# CSS OTIMIZADO - FONTES PADRONIZADAS
+# CSS OTIMIZADO - SIDEBAR MAIS CLARA
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -47,21 +47,21 @@ html, body, [class*="css"] {
 }
 
 [data-testid="stAppViewContainer"] { background: #f8fafc; }
-[data-testid="stSidebar"] { background: #0f172a !important; border-right: none !important; }
+[data-testid="stSidebar"] { background: #f1f5f9 !important; border-right: 1px solid #e2e8f0 !important; }
 
 .block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
 
-/* SIDEBAR */
-.sb-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.3px; padding: 1rem 0 0.2rem; }
-.sb-sub  { font-size: 11px; color: #94a3b8; margin-bottom: 0.8rem; }
-.sb-div  { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 0.8rem 0; }
+/* SIDEBAR MAIS CLARA */
+.sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; padding: 1rem 0 0.2rem; }
+.sb-sub  { font-size: 11px; color: #64748b; margin-bottom: 0.8rem; }
+.sb-div  { border: none; border-top: 1px solid #e2e8f0; margin: 0.8rem 0; }
 .sb-lbl  { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin-bottom: 0.4rem; }
-.sb-user { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; }
-.sb-role { font-size: 11px; color: #94a3b8; }
+.sb-user { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.sb-role { font-size: 11px; color: #64748b; }
 .sb-badge { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
-.sb-red    { background: #fef2f2; color: #dc2626; }
-.sb-yellow { background: #fefce8; color: #ca8a04; }
-.sb-green  { background: #f0fdf4; color: #16a34a; }
+.sb-red    { background: #fee2e2; color: #dc2626; }
+.sb-yellow { background: #fef3c7; color: #d97706; }
+.sb-green  { background: #dcfce7; color: #16a34a; }
 .sb-num { font-size: 18px; font-weight: 700; }
 .sb-time { font-size: 10px; color: #64748b; margin-top: 1rem; }
 
@@ -104,14 +104,14 @@ html, body, [class*="css"] {
 
 /* CHART CARDS */
 .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-.chart-title { font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+.chart-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 16px; border-left: 3px solid #2563eb; padding-left: 10px; }
 .sbar-wrap { margin-bottom: 12px; }
 .sbar-label { font-size: 12px; font-weight: 500; color: #334155; margin-bottom: 4px; display: flex; justify-content: space-between; }
-.sbar-track { height: 28px; border-radius: 6px; background: #f1f5f9; overflow: hidden; display: flex; }
-.sbar-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; min-width: 20px; }
-.legend-row { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
-.legend-dot { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748b; }
-.ldot { width: 9px; height: 9px; border-radius: 3px; }
+.sbar-track { height: 32px; border-radius: 6px; background: #f1f5f9; overflow: hidden; display: flex; }
+.sbar-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; min-width: 24px; }
+.legend-row { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+.legend-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; }
+.ldot { width: 10px; height: 10px; border-radius: 3px; }
 
 /* PDCA */
 .pdca-header { border-radius: 8px; padding: 8px 6px; text-align: center; margin-bottom: 8px; }
@@ -138,6 +138,14 @@ textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37
 .stButton > button:hover { background: #1e293b !important; }
 
 hr { border: none; border-top: 1px solid #e2e8f0 !important; margin: 0.8rem 0; }
+
+/* GRID PARA GRÁFICOS */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -226,7 +234,7 @@ def sec(t):
     st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# SIDEBAR
+# SIDEBAR MAIS CLARA
 # ──────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
@@ -241,6 +249,14 @@ with st.sidebar:
     st.markdown("<div class='sb-lbl'>Resumo de Riscos</div>", unsafe_allow_html=True)
     sidebar_ph = st.empty()
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    
+    # Navegação rápida
+    st.markdown("<div class='sb-lbl'>Navegação</div>", unsafe_allow_html=True)
+    st.markdown("📊 Dados", unsafe_allow_html=True)
+    st.markdown("📈 Gráficos", unsafe_allow_html=True)
+    st.markdown("🔄 PDCA", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    
     if st.button("Encerrar Sessão", use_container_width=True):
         fazer_logout()
     st.markdown(f"<div class='sb-time'>🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
@@ -249,17 +265,21 @@ with st.sidebar:
 # CABEÇALHO
 # ──────────────────────────────────────────────
 st.markdown(f"""
-<div class='page-title'>PDCA + Análise de Risco</div>
-<div class='page-sub'>Gestão de Segurança da Informação · {datetime.now().strftime('%d/%m/%Y')}</div>
+<div class='page-title'>SecureOps - Gestão de Segurança</div>
+<div class='page-sub'>PDCA + Análise de Risco · {datetime.now().strftime('%d/%m/%Y')}</div>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["📊 Análise de Risco", "🖥️ Equipamentos", "🔄 PDCA"])
+# Criar abas: Dados, Gráficos, PDCA
+tab_dados, tab_graficos, tab_pdca = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA"])
 
 # ══════════════════════════════════════════════
-# TAB 1 — ANÁLISE DE RISCO
+# TAB DADOS
 # ══════════════════════════════════════════════
-with tab1:
-    sec("Matriz de Risco")
+with tab_dados:
+    st.markdown("### 📋 Gestão de Dados")
+    
+    # Dados de Risco
+    sec("Análise de Risco")
     dados_risco = pd.DataFrame({
         "Ativo": ["Cabos na sala de servidores", "Pen drive ou HD", "Servidor de internet",
                   "Switch de borda", "Firewall", "Router core"],
@@ -289,29 +309,8 @@ with tab1:
     )
     edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
-    qtd_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-    qtd_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
-    qtd_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
-
-    sec("Indicadores")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.markdown(mcard(len(edited_risco), "Total de Riscos", "c-blue"), unsafe_allow_html=True)
-    with c2: st.markdown(mcard(qtd_alto, "Riscos Críticos", "c-red"), unsafe_allow_html=True)
-    with c3: st.markdown(mcard(qtd_medio, "Riscos Médios", "c-yellow"), unsafe_allow_html=True)
-    with c4: st.markdown(mcard(qtd_baixo, "Riscos Baixos", "c-green"), unsafe_allow_html=True)
-
-    sec("Gráficos")
-    g1, g2 = st.columns(2)
-    with g1:
-        st.markdown(stacked_bar(edited_risco, "Riscos por Localidade", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
-    with g2:
-        st.markdown(stacked_bar(edited_risco, "Riscos por Probabilidade", CORES_RISCO, "Probabilidade", "Nível do Risco"), unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════
-# TAB 2 — EQUIPAMENTOS (COM CAMPO MOTIVO)
-# ══════════════════════════════════════════════
-with tab2:
-    sec("Inventário de Equipamentos TI/OT")
+    # Dados de Equipamentos
+    sec("Inventário de Equipamentos")
     dados_eq = pd.DataFrame({
         "Equipamento": ["Firewall Fortinet", "Switch Core Huawei", "Router Cisco", "Servidor Dell",
                         "Storage EMC", "Access Point", "Patch Panel"],
@@ -337,30 +336,123 @@ with tab2:
         }, hide_index=True,
     )
 
+    # Métricas
     sec("Indicadores")
-    ativos = len(edited_eq[edited_eq["Status"] == "Ativo"])
-    manutencao = len(edited_eq[edited_eq["Status"] == "Em Manutenção"])
-    seg_count = len(edited_eq[edited_eq["Tipo"] == "Segurança"])
-    fab_count = edited_eq["Fabricante"].nunique()
-
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.markdown(mcard(len(edited_eq), "Total Equipamentos", "c-blue"), unsafe_allow_html=True)
-    with c2: st.markdown(mcard(ativos, "Ativos", "c-green"), unsafe_allow_html=True)
-    with c3: st.markdown(mcard(manutencao, "Em Manutenção", "c-yellow"), unsafe_allow_html=True)
-    with c4: st.markdown(mcard(fab_count, "Fabricantes", "c-gray"), unsafe_allow_html=True)
-
-    sec("Gráficos")
-    g1, g2 = st.columns(2)
-    with g1:
-        st.markdown(stacked_bar(edited_eq, "Equipamentos por Tipo (Status)", CORES_STATUS, "Tipo", "Status"), unsafe_allow_html=True)
-    with g2:
-        st.markdown(stacked_bar(edited_eq, "Equipamentos por Localidade (Tipo)", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
+    with col2: st.markdown(mcard(len(edited_eq), "Equipamentos", "c-green"), unsafe_allow_html=True)
+    with col3: 
+        ativos_eq = len(edited_eq[edited_eq["Status"] == "Ativo"])
+        st.markdown(mcard(ativos_eq, "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
+    with col4:
+        risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+        st.markdown(mcard(risco_alto, "Riscos Críticos", "c-red"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-# TAB 3 — PDCA
+# TAB GRÁFICOS - PÁGINA EXCLUSIVA PARA GRÁFICOS
 # ══════════════════════════════════════════════
-with tab3:
-    sec("PDCA de Controle de Acesso")
+with tab_graficos:
+    st.markdown("### 📊 Dashboard de Gráficos")
+    st.markdown("<div class='page-sub'>Análise visual de riscos, localidades e equipamentos</div>", unsafe_allow_html=True)
+    
+    # Métricas rápidas
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    with col_m1:
+        st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
+    with col_m2:
+        risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+        st.markdown(mcard(risco_alto, "Riscos Altos", "c-red"), unsafe_allow_html=True)
+    with col_m3:
+        total_eq = len(edited_eq)
+        st.markdown(mcard(total_eq, "Total Equipamentos", "c-green"), unsafe_allow_html=True)
+    with col_m4:
+        localidades = edited_risco["Localidade"].nunique()
+        st.markdown(mcard(localidades, "Localidades", "c-gray"), unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # GRÁFICO 1: Riscos por Localidade
+    st.markdown(stacked_bar(edited_risco, "📍 Riscos por Localidade (Distribuição por Nível)", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
+    
+    # GRÁFICO 2: Riscos por Probabilidade
+    st.markdown(stacked_bar(edited_risco, "📊 Riscos por Probabilidade", CORES_RISCO, "Probabilidade", "Nível do Risco"), unsafe_allow_html=True)
+    
+    # GRÁFICO 3: Equipamentos por Localidade
+    st.markdown(stacked_bar(edited_eq, "🏢 Equipamentos por Localidade (Distribuição por Tipo)", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
+    
+    # GRÁFICO 4: Equipamentos por Tipo e Status
+    st.markdown(stacked_bar(edited_eq, "⚙️ Equipamentos por Tipo (Status)", CORES_STATUS, "Tipo", "Status"), unsafe_allow_html=True)
+    
+    # GRÁFICO 5: Equipamentos por Fabricante
+    if len(edited_eq) > 0:
+        st.markdown("### 🏭 Equipamentos por Fabricante")
+        fabricante_count = edited_eq["Fabricante"].value_counts().to_dict()
+        if fabricante_count:
+            max_fab = max(fabricante_count.values()) or 1
+            fab_html = "<div class='chart-card'><div class='chart-title'>Distribuição por Fabricante</div>"
+            for fab, qtd in fabricante_count.items():
+                percentual = (qtd / max_fab) * 100
+                fab_html += f"""
+                <div class='sbar-wrap'>
+                    <div class='sbar-label'>
+                        <span>{fab}</span>
+                        <span style='font-weight:600;color:#0f172a'>{qtd}</span>
+                    </div>
+                    <div class='sbar-track' style='width:{percentual}%'>
+                        <div class='sbar-seg' style='width:100%;background:#7c3aed;'>{qtd if percentual > 8 else ''}</div>
+                    </div>
+                </div>"""
+            fab_html += "</div>"
+            st.markdown(fab_html, unsafe_allow_html=True)
+    
+    # GRÁFICO 6: Resumo Geral
+    st.markdown("### 📈 Resumo Geral")
+    col_res1, col_res2 = st.columns(2)
+    with col_res1:
+        # Distribuição de riscos
+        risco_count = edited_risco["Nível do Risco"].value_counts().to_dict()
+        risco_html = "<div class='chart-card'><div class='chart-title'>Distribuição de Riscos</div>"
+        for nivel, qtd in risco_count.items():
+            cor = CORES_RISCO.get(nivel, "#94a3b8")
+            percentual = (qtd / len(edited_risco)) * 100 if len(edited_risco) > 0 else 0
+            risco_html += f"""
+            <div class='sbar-wrap'>
+                <div class='sbar-label'>
+                    <span>{nivel}</span>
+                    <span style='font-weight:600;color:#0f172a'>{qtd} ({percentual:.0f}%)</span>
+                </div>
+                <div class='sbar-track' style='width:100%'>
+                    <div class='sbar-seg' style='width:{percentual}%;background:{cor};'>{percentual:.0f}%</div>
+                </div>
+            </div>"""
+        risco_html += "</div>"
+        st.markdown(risco_html, unsafe_allow_html=True)
+    
+    with col_res2:
+        # Status dos equipamentos
+        status_count = edited_eq["Status"].value_counts().to_dict()
+        status_html = "<div class='chart-card'><div class='chart-title'>Status dos Equipamentos</div>"
+        for status, qtd in status_count.items():
+            cor = CORES_STATUS.get(status, "#94a3b8")
+            percentual = (qtd / len(edited_eq)) * 100 if len(edited_eq) > 0 else 0
+            status_html += f"""
+            <div class='sbar-wrap'>
+                <div class='sbar-label'>
+                    <span>{status}</span>
+                    <span style='font-weight:600;color:#0f172a'>{qtd} ({percentual:.0f}%)</span>
+                </div>
+                <div class='sbar-track' style='width:100%'>
+                    <div class='sbar-seg' style='width:{percentual}%;background:{cor};'>{percentual:.0f}%</div>
+                </div>
+            </div>"""
+        status_html += "</div>"
+        st.markdown(status_html, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════
+# TAB PDCA
+# ══════════════════════════════════════════════
+with tab_pdca:
+    st.markdown("### 🔄 PDCA de Controle de Acesso")
 
     fases = [
         {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb"},
@@ -404,7 +496,7 @@ with tab3:
     st.markdown("<br>", unsafe_allow_html=True)
     col_b, _, _ = st.columns([1.5, 3, 1.5])
     with col_b:
-        if st.button("🖨️ Gerar Relatório", use_container_width=True):
+        if st.button("🖨️ Gerar Relatório Completo", use_container_width=True):
             r_html = edited_risco.to_html(index=False)
             e_html = edited_eq.to_html(index=False)
             p_html = "<table style='width:100%;border-collapse:collapse;font-size:12px;'>"
@@ -437,8 +529,12 @@ with tab3:
 # SIDEBAR - RISCOS (ATUALIZADO)
 # ──────────────────────────────────────────────
 with sidebar_ph:
+    risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+    risco_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
+    risco_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
+    
     st.markdown(f"""
-    <div class='sb-badge sb-red'>   <span>🔴 Alto</span>  <span class='sb-num'>{qtd_alto}</span>  </div>
-    <div class='sb-badge sb-yellow'><span>🟡 Médio</span> <span class='sb-num'>{qtd_medio}</span> </div>
-    <div class='sb-badge sb-green'> <span>🟢 Baixo</span> <span class='sb-num'>{qtd_baixo}</span> </div>
+    <div class='sb-badge sb-red'>   <span>🔴 Alto</span>  <span class='sb-num'>{risco_alto}</span>  </div>
+    <div class='sb-badge sb-yellow'><span>🟡 Médio</span> <span class='sb-num'>{risco_medio}</span> </div>
+    <div class='sb-badge sb-green'> <span>🟢 Baixo</span> <span class='sb-num'>{risco_baixo}</span> </div>
     """, unsafe_allow_html=True)
