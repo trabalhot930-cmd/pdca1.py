@@ -1,135 +1,129 @@
 import streamlit as st
+import pandas as pd
+from database import conectar, criar_tabelas
+from risk_engine import calcular_risco
 
-# Configuração da página
-st.set_page_config(layout="wide", page_title="PDCA Controle de Acesso")
+st.set_page_config(layout="wide", page_title="GRC - Segurança da Informação")
 
-st.title("🔄 PDCA de Controle de Acesso - Gestão de Segurança")
-st.markdown("---")
+criar_tabelas()
 
-# Colunas (PDCA)
-colunas = [
-    {"nome": "1. Contexto (P)", "cor": "#1E88E5"},
-    {"nome": "2. Liderança (P)", "cor": "#1E88E5"},
-    {"nome": "3. Planejamento (P)", "cor": "#1E88E5"},
-    {"nome": "4. Suporte (D)", "cor": "#E53935"},
-    {"nome": "5. Operação (D)", "cor": "#E53935"},
-    {"nome": "6. Avaliação (C)", "cor": "#43A047"},
-    {"nome": "7. Melhoria (A)", "cor": "#FB8C00"}
-]
+st.title("🛡️ Sistema GRC - Governança, Risco e Compliance")
 
-linhas = [
-    "🎯 Objetivo Estratégico",
-    "⚙️ Ação Técnica (TI/OT)",
-    "📊 Indicador (KPI)",
-    "🚩 Evidência / Status"
-]
+menu = st.sidebar.selectbox("Menu", ["Dashboard", "Riscos", "PDCA"])
 
-# CSS
-st.markdown("""
-<style>
-textarea {
-    height: 120px !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# =========================
+# 📊 DASHBOARD
+# =========================
+if menu == "Dashboard":
+    st.header("📊 Visão Geral")
 
-cols = st.columns(len(colunas))
+    conn = conectar()
+    df = pd.read_sql("SELECT * FROM riscos", conn)
 
-# Armazenar dados
-dados = {}
+    if not df.empty:
+        col1, col2 = st.columns(2)
 
-for i, col_info in enumerate(colunas):
-    with cols[i]:
-        st.markdown(f"""
-            <div style="
-                background-color: {col_info['cor']};
-                padding: 10px;
-                border-radius: 10px 10px 0 0;
-                text-align: center;
-                color: white;
-                font-weight: bold;
-                font-size: 14px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;">
-                {col_info['nome']}
-            </div>
-        """, unsafe_allow_html=True)
+        col1.metric("Total de Riscos", len(df))
+        col2.metric("Críticos", len(df[df["nivel"] == "Crítico"]))
 
-        for j, titulo_linha in enumerate(linhas):
-            key_id = f"cell_{i}_{j}"
+        st.subheader("Distribuição de Risco")
+        st.bar_chart(df["nivel"].value_counts())
+    else:
+        st.info("Nenhum risco cadastrado.")
 
-            st.markdown(f"""
-                <div style="
-                    background-color: #f4f4f4;
-                    padding: 6px;
-                    border-left: 5px solid {col_info['cor']};
-                    font-size: 12px;
-                    font-weight: bold;">
-                    {titulo_linha}
-                </div>
-            """, unsafe_allow_html=True)
+# =========================
+# ⚠️ RISCOS
+# =========================
+elif menu == "Riscos":
+    st.header("🔎 Cadastro de Riscos")
 
-            valor = st.text_area(
-                label="",
-                key=key_id,
-                placeholder="Digite aqui...",
-                label_visibility="collapsed"
-            )
+    with st.form("form_risco"):
+        col1, col2, col3 = st.columns(3)
 
-            dados[(i, j)] = valor
+        ativo = col1.text_input("Ativo")
+        ameaca = col2.text_input("Ameaça")
+        vulnerabilidade = col3.text_input("Vulnerabilidade")
 
-st.markdown("---")
+        col4, col5, col6 = st.columns(3)
 
-# BOTÃO DE IMPRESSÃO
-if st.button("🖨️ Imprimir PDCA"):
-    
-    html = """
-    <html>
-    <head>
-    <style>
-        body { font-family: Arial; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
-        th { color: white; }
-    </style>
-    </head>
-    <body>
-    <h2>PDCA - Controle de Acesso</h2>
-    <table>
-    """
+        localidade = col4.selectbox("Localidade", ["Matriz", "Filial", "Cloud", "Externo"])
+        prob = col5.selectbox("Probabilidade", ["Baixa", "Média", "Alta"])
+        imp = col6.selectbox("Impacto", ["Baixo", "Médio", "Alto"])
 
-    # Cabeçalho
-    html += "<tr>"
-    for col in colunas:
-        html += f"<th style='background:{col['cor']}'>{col['nome']}</th>"
-    html += "</tr>"
+        submit = st.form_submit_button("Salvar Risco")
 
-    # Linhas
-    for j, linha_nome in enumerate(linhas):
-        html += "<tr>"
-        for i in range(len(colunas)):
-            conteudo = dados[(i, j)].replace("\n", "<br>")
-            html += f"<td><b>{linha_nome}</b><br>{conteudo}</td>"
-        html += "</tr>"
+    if submit:
+        score, nivel = calcular_risco(prob, imp, localidade)
 
-    html += """
-    </table>
+        conn = conectar()
+        cursor = conn.cursor()
 
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
+        cursor.execute("""
+        INSERT INTO riscos (ativo, ameaca, vulnerabilidade, localidade, probabilidade, impacto, score, nivel)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (ativo, ameaca, vulnerabilidade, localidade, prob, imp, score, nivel))
 
-    </body>
-    </html>
-    """
+        conn.commit()
+        conn.close()
 
-    st.components.v1.html(html, height=800)
+        st.success(f"Risco cadastrado | Nível: {nivel}")
 
-st.success("✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua")
+    # Exibir tabela
+    conn = conectar()
+    df = pd.read_sql("SELECT * FROM riscos", conn)
 
-st.success(
-    "✅ P = Planejamento | D = Execução | C = Auditoria | A = Melhoria Contínua"
-)
+    if not df.empty:
+        st.subheader("📋 Riscos Registrados")
+
+        def cor(val):
+            cores = {
+                "Baixo": "background-color: green; color:white",
+                "Médio": "background-color: orange",
+                "Alto": "background-color: red; color:white",
+                "Crítico": "background-color: darkred; color:white"
+            }
+            return cores.get(val, "")
+
+        st.dataframe(df.style.applymap(cor, subset=["nivel"]))
+
+# =========================
+# 🔄 PDCA AUTOMÁTICO
+# =========================
+elif menu == "PDCA":
+    st.header("🔄 PDCA Automatizado")
+
+    conn = conectar()
+    df = pd.read_sql("SELECT * FROM riscos", conn)
+
+    if df.empty:
+        st.warning("Cadastre riscos primeiro.")
+    else:
+        riscos_prioritarios = df[df["nivel"].isin(["Alto", "Crítico"])]
+
+        st.subheader("🚨 Ações Prioritárias")
+
+        for _, r in riscos_prioritarios.iterrows():
+            st.error(f"""
+            Ativo: {r['ativo']}
+            Ameaça: {r['ameaca']}
+            Nível: {r['nivel']}
+            
+            👉 Ação:
+            - Implementar controle de acesso
+            - Revisar políticas
+            - Monitoramento contínuo
+            """)
+
+        st.subheader("📘 PDCA Estruturado")
+
+        st.markdown("### 🟦 Planejar (Plan)")
+        st.write("Definir controles para riscos críticos")
+
+        st.markdown("### 🟥 Executar (Do)")
+        st.write("Aplicar controles de segurança")
+
+        st.markdown("### 🟩 Verificar (Check)")
+        st.write("Auditoria e monitoramento")
+
+        st.markdown("### 🟧 Agir (Act)")
+        st.write("Melhoria contínua baseada nos riscos")
