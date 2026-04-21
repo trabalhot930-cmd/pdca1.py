@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import sqlite3
+import os
 
 st.set_page_config(
     layout="wide",
@@ -8,6 +10,138 @@ st.set_page_config(
     page_icon="🛡️",
     initial_sidebar_state="expanded"
 )
+
+# ──────────────────────────────────────────────
+# BANCO DE DADOS SQLITE (PERMANENTE)
+# ──────────────────────────────────────────────
+DB_NAME = "secureops.db"
+
+def init_database():
+    """Inicializa o banco de dados"""
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # Tabela de histórico
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS historico (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tipo TEXT NOT NULL,
+            dados TEXT,
+            usuario TEXT NOT NULL,
+            data TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+    ''')
+    
+    # Tabela de configurações
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS configuracoes (
+            chave TEXT PRIMARY KEY,
+            valor TEXT,
+            atualizado_em TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def salvar_historico_db(tipo, dados, usuario):
+    """Salva histórico no SQLite"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        
+        # Converter dados para string
+        dados_str = str(dados)
+        
+        cursor.execute('''
+            INSERT INTO historico (tipo, dados, usuario, data, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            tipo,
+            dados_str[:5000],  # Limitar tamanho
+            usuario,
+            datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+            datetime.now().isoformat()
+        ))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar: {e}")
+        return False
+
+def carregar_historico_db(tipo=None):
+    """Carrega histórico do SQLite"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        
+        if tipo and tipo != "Todos":
+            query = "SELECT id, tipo, usuario, data FROM historico WHERE tipo = ? ORDER BY id DESC"
+            df = pd.read_sql_query(query, conn, params=(tipo,))
+        else:
+            query = "SELECT id, tipo, usuario, data FROM historico ORDER BY id DESC"
+            df = pd.read_sql_query(query, conn)
+        
+        conn.close()
+        return df
+    except Exception as e:
+        return pd.DataFrame()
+
+def limpar_historico_db():
+    """Limpa todo o histórico"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        conn.execute("DELETE FROM historico")
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        return False
+
+def salvar_risco_db(df_risco):
+    """Salva análise de risco atual"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        df_risco.to_sql('risco_atual', conn, if_exists='replace', index=False)
+        conn.close()
+        return True
+    except:
+        return False
+
+def carregar_risco_db():
+    """Carrega análise de risco salva"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        df = pd.read_sql_query("SELECT * FROM risco_atual", conn)
+        conn.close()
+        return df
+    except:
+        return None
+
+def salvar_equipamento_db(df_eq):
+    """Salva equipamentos atuais"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        df_eq.to_sql('equipamentos_atual', conn, if_exists='replace', index=False)
+        conn.close()
+        return True
+    except:
+        return False
+
+def carregar_equipamento_db():
+    """Carrega equipamentos salvos"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        df = pd.read_sql_query("SELECT * FROM equipamentos_atual", conn)
+        conn.close()
+        return df
+    except:
+        return None
+
+# Inicializar banco
+init_database()
 
 # ──────────────────────────────────────────────
 # AUTH
@@ -30,139 +164,54 @@ def fazer_logout():
     st.rerun()
 
 # ──────────────────────────────────────────────
-# HISTÓRICO LOCAL
-# ──────────────────────────────────────────────
-def salvar_historico_local(tipo, dados, usuario):
-    """Salva histórico no session_state"""
-    if 'historico' not in st.session_state:
-        st.session_state.historico = []
-    
-    registro = {
-        "id": len(st.session_state.historico) + 1,
-        "tipo": tipo,
-        "dados": str(dados)[:500] if isinstance(dados, dict) else "Dados salvos",
-        "usuario": usuario,
-        "data": datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
-        "timestamp": datetime.now().isoformat()
-    }
-    st.session_state.historico.insert(0, registro)
-    st.session_state.historico = st.session_state.historico[:50]
-    return True
-
-def carregar_historico_local(tipo=None):
-    """Carrega histórico do session_state"""
-    if 'historico' not in st.session_state:
-        return pd.DataFrame()
-    
-    historico = st.session_state.historico
-    if tipo and tipo != "Todos":
-        historico = [h for h in historico if h["tipo"] == tipo]
-    
-    if not historico:
-        return pd.DataFrame()
-    
-    df = pd.DataFrame(historico)
-    if not df.empty:
-        df = df[["id", "tipo", "usuario", "data"]]
-    return df
-
-# ──────────────────────────────────────────────
-# CSS OTIMIZADO
+# CSS
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-* {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    color: #1e293b;
-}
+* { font-family: 'Inter', sans-serif !important; }
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; font-size: 14px; color: #1e293b; }
 
 [data-testid="stAppViewContainer"] { background: #f8fafc; }
 [data-testid="stSidebar"] { background: #f1f5f9 !important; border-right: 1px solid #e2e8f0 !important; }
 
-.block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
+.block-container { padding: 1.5rem 2rem 2rem !important; }
 
-.sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; padding: 1rem 0 0.2rem; }
-.sb-sub  { font-size: 11px; color: #64748b; margin-bottom: 0.8rem; }
-.sb-div  { border: none; border-top: 1px solid #e2e8f0; margin: 0.8rem 0; }
-.sb-lbl  { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #64748b; margin-bottom: 0.4rem; }
-.sb-user { font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 2px; }
+.sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; padding: 1rem 0 0.2rem; }
+.sb-sub { font-size: 11px; color: #64748b; }
+.sb-div { border-top: 1px solid #e2e8f0; margin: 0.8rem 0; }
+.sb-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #64748b; }
+.sb-user { font-size: 14px; font-weight: 600; color: #0f172a; }
 .sb-role { font-size: 11px; color: #64748b; }
-.sb-badge { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; font-weight: 500; }
-.sb-red    { background: #fee2e2; color: #dc2626; }
+.sb-badge { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; }
+.sb-red { background: #fee2e2; color: #dc2626; }
 .sb-yellow { background: #fef3c7; color: #d97706; }
-.sb-green  { background: #dcfce7; color: #16a34a; }
+.sb-green { background: #dcfce7; color: #16a34a; }
 .sb-num { font-size: 18px; font-weight: 700; }
-.sb-time { font-size: 10px; color: #64748b; margin-top: 1rem; }
 
-.stTabs [data-baseweb="tab-list"] {
-    gap: 0; background: #e2e8f0; padding: 4px;
-    border-radius: 10px; width: fit-content;
-}
-.stTabs [data-baseweb="tab"] {
-    border-radius: 7px; padding: 6px 20px;
-    font-size: 13px; font-weight: 500;
-    color: #64748b; background: transparent;
-}
-.stTabs [aria-selected="true"] {
-    background: #fff; color: #0f172a;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-.stTabs [data-baseweb="tab-panel"] { padding-top: 1.5rem; }
+.stTabs [data-baseweb="tab-list"] { gap: 0; background: #e2e8f0; padding: 4px; border-radius: 10px; }
+.stTabs [data-baseweb="tab"] { padding: 6px 20px; font-size: 13px; color: #64748b; }
+.stTabs [aria-selected="true"] { background: #fff; color: #0f172a; }
 
-.page-title { font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin-bottom: 4px; }
-.page-sub   { font-size: 13px; color: #64748b; margin-bottom: 1.2rem; }
+.page-title { font-size: 24px; font-weight: 700; color: #0f172a; }
+.page-sub { font-size: 13px; color: #64748b; margin-bottom: 1.2rem; }
 
-.sec-title {
-    font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 1px; color: #94a3b8;
-    margin: 1.5rem 0 0.8rem;
-    border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;
-}
+.sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #94a3b8; margin: 1.5rem 0 0.8rem; border-bottom: 1px solid #e2e8f0; }
 
-.mcard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 16px 12px; }
-.mcard-num { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; margin-bottom: 4px; }
-.mcard-lbl { font-size: 12px; font-weight: 500; color: #64748b; }
-.c-blue   { color: #2563eb; }
-.c-red    { color: #dc2626; }
-.c-yellow { color: #d97706; }
-.c-green  { color: #16a34a; }
-.c-gray   { color: #475569; }
+.mcard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+.mcard-num { font-size: 32px; font-weight: 700; }
+.mcard-lbl { font-size: 12px; color: #64748b; }
+.c-blue { color: #2563eb; }
+.c-red { color: #dc2626; }
+.c-green { color: #16a34a; }
 
 .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-.chart-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 16px; border-left: 3px solid #2563eb; padding-left: 10px; }
-.sbar-wrap { margin-bottom: 12px; }
-.sbar-label { font-size: 12px; font-weight: 500; color: #334155; margin-bottom: 4px; display: flex; justify-content: space-between; }
-.sbar-track { height: 32px; border-radius: 6px; background: #f1f5f9; overflow: hidden; display: flex; }
-.sbar-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; min-width: 24px; }
-.legend-row { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #e2e8f0; }
-.legend-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; }
-.ldot { width: 10px; height: 10px; border-radius: 3px; }
+.chart-title { font-size: 14px; font-weight: 600; border-left: 3px solid #2563eb; padding-left: 10px; }
+.sbar-track { height: 32px; background: #f1f5f9; border-radius: 6px; overflow: hidden; display: flex; }
+.sbar-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; }
 
-.pdca-header { border-radius: 8px; padding: 8px 6px; text-align: center; margin-bottom: 8px; }
-.pdca-row-lbl { font-size: 12px; font-weight: 600; color: #475569; padding: 6px 0 3px; border-bottom: 1px solid #e2e8f0; margin: 4px 0 3px; }
-
-textarea {
-    border-radius: 8px !important; border: 1px solid #e2e8f0 !important;
-    font-size: 12px !important; font-family: 'Inter', sans-serif !important;
-    background: #fff !important;
-}
-textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37,99,235,0.1) !important; }
-
-.stButton > button {
-    background: #0f172a !important; color: #fff !important;
-    border: none !important; border-radius: 8px !important;
-    font-size: 13px !important; font-weight: 500 !important;
-}
-.stButton > button:hover { background: #1e293b !important; }
-
-hr { border: none; border-top: 1px solid #e2e8f0 !important; margin: 0.8rem 0; }
+.stButton > button { background: #0f172a !important; color: #fff !important; border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -175,7 +224,7 @@ if not verificar_login():
         st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
         st.markdown("<div class='page-title' style='text-align:center'>🛡️ SecureOps</div>", unsafe_allow_html=True)
         st.markdown("<div class='page-sub' style='text-align:center'>Sistema de Gestão de Segurança</div>", unsafe_allow_html=True)
-        st.markdown("<div style='height:15px'></div>", unsafe_allow_html=True)
+        
         with st.form("login_form"):
             username = st.text_input("Usuário", placeholder="Digite seu usuário")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
@@ -186,7 +235,8 @@ if not verificar_login():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha inválidos.")
-        st.markdown("<p style='text-align:center;font-size:11px;color:#94a3b8;margin-top:10px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
+        
+        st.markdown("<p style='text-align:center;font-size:11px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
     st.stop()
 
 # ──────────────────────────────────────────────
@@ -208,17 +258,13 @@ CORES_STATUS = {"Ativo": "#16a34a", "Em Manutenção": "#d97706", "Desativado": 
 
 def stacked_bar(df, title, cores, col_group, col_stack):
     if df.empty:
-        return "<div class='chart-card'>Sem dados para exibir</div>"
+        return "<div class='chart-card'>Sem dados</div>"
     
     pivot = df.groupby([col_group, col_stack]).size().unstack(fill_value=0)
     cats = list(pivot.columns)
     tmax = pivot.sum(axis=1).max() or 1
 
-    legend_items = []
-    for c in cats:
-        cor = cores.get(c, "#94a3b8")
-        legend_items.append(f"<div class='legend-dot'><div class='ldot' style='background:{cor};'></div>{c}</div>")
-    legend = "".join(legend_items)
+    legend = "".join([f"<span style='margin-right:12px'><span style='background:{cores.get(c,'#ccc')};display:inline-block;width:10px;height:10px;border-radius:3px;'></span> {c}</span>" for c in cats])
 
     bars = ""
     for idx, row in pivot.iterrows():
@@ -227,20 +273,16 @@ def stacked_bar(df, title, cores, col_group, col_stack):
         for cat in cats:
             val = row.get(cat, 0)
             pct = (val / total) * 100
-            cor = cores.get(cat, "#94a3b8")
             if pct > 0:
-                segs += f"<div class='sbar-seg' style='width:{pct}%;background:{cor};' title='{cat}: {val}'>{val if pct > 8 else ''}</div>"
+                segs += f"<div class='sbar-seg' style='width:{pct}%;background:{cores.get(cat,'#ccc')};'>{val if pct > 8 else ''}</div>"
         w = max((total / tmax) * 100, 10)
         bars += f"""
-        <div class='sbar-wrap'>
-            <div class='sbar-label'>
-                <span>{str(idx)[:40]}</span>
-                <span style='font-weight:600;color:#0f172a'>{int(total)}</span>
-            </div>
+        <div style='margin-bottom:12px'>
+            <div style='display:flex;justify-content:space-between;margin-bottom:4px'><span>{str(idx)[:35]}</span><b>{int(total)}</b></div>
             <div class='sbar-track' style='width:{w}%'>{segs}</div>
         </div>"""
-
-    return f"<div class='chart-card'><div class='chart-title'>{title}</div>{bars}<div class='legend-row'>{legend}</div></div>"
+    
+    return f"<div class='chart-card'><div class='chart-title'>{title}</div>{bars}<div style='margin-top:12px'>{legend}</div></div>"
 
 def mcard(num, lbl, cor):
     return f"<div class='mcard'><div class='mcard-num {cor}'>{num}</div><div class='mcard-lbl'>{lbl}</div></div>"
@@ -252,34 +294,60 @@ def sec(t):
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div class='sb-logo'>🛡️ SecureOps</div>
-    <div class='sb-sub'>Gestão de Segurança</div>
-    <hr class='sb-div'>
-    <div class='sb-lbl'>Usuário</div>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='sb-logo'>🛡️ SecureOps</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-sub'>Gestão de Segurança</div>")
+    st.markdown("<hr class='sb-div'>")
     st.markdown(f"<div class='sb-user'>{st.session_state.usuario}</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-role'>Administrador</div>", unsafe_allow_html=True)
-    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-lbl'>Resumo de Riscos</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-role'>Administrador</div>")
+    st.markdown("<hr class='sb-div'>")
+    st.markdown("<div class='sb-lbl'>Resumo</div>")
     sidebar_ph = st.empty()
-    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>")
+    st.markdown(f"<div class='sb-lbl'>📅 {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
+    st.markdown("<hr class='sb-div'>")
     
-    st.markdown("<div class='sb-lbl'>Data/Hora</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='sb-time'>📅 {datetime.now().strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='sb-time'>🕐 {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
-    st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
-    
-    if st.button("Encerrar Sessão", use_container_width=True):
+    if st.button("🚪 Sair", use_container_width=True):
         fazer_logout()
 
 # ──────────────────────────────────────────────
-# CABEÇALHO COM DATA
+# CABEÇALHO
 # ──────────────────────────────────────────────
 st.markdown(f"""
 <div class='page-title'>SecureOps - Gestão de Segurança</div>
-<div class='page-sub'>PDCA + Análise de Risco · Relatório: {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
+<div class='page-sub'>PDCA + Análise de Risco · Dados salvos em banco local</div>
 """, unsafe_allow_html=True)
+
+# Carregar dados salvos ou criar novos
+dados_risco_carregado = carregar_risco_db()
+dados_eq_carregado = carregar_equipamento_db()
+
+if dados_risco_carregado is not None:
+    edited_risco = dados_risco_carregado
+    st.info("📀 Dados de risco carregados do banco")
+else:
+    edited_risco = pd.DataFrame({
+        "Ativo": ["Cabos na sala", "Pen drive", "Servidor internet", "Switch", "Firewall", "Router"],
+        "Localidade": ["Sala A", "TI Sala 210", "DC Rack 05", "Sala rede", "DC Rack 02", "DC Rack 01"],
+        "Ameaça": ["Rompimento", "Vírus", "Invasão", "Desligamento", "DDoS", "Configuração"],
+        "Vulnerabilidade": ["Cabos soltos", "Antivírus antigo", "Rede interna", "Sem trava", "Firmware", "Senha fraca"],
+        "Probabilidade": ["Baixa", "Alta", "Média", "Média", "Baixa", "Média"],
+        "Impacto": ["Alto", "Alto", "Alto", "Médio", "Alto", "Alto"],
+    })
+    edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
+
+if dados_eq_carregado is not None:
+    edited_eq = dados_eq_carregado
+    st.info("💾 Dados de equipamentos carregados do banco")
+else:
+    edited_eq = pd.DataFrame({
+        "Equipamento": ["Firewall", "Switch", "Router", "Servidor", "Storage", "Access Point", "Patch Panel"],
+        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infra"],
+        "Localidade": ["DC Rack 02", "DC Rack 01", "DC Rack 01", "DC Rack 03", "DC Rack 04", "Sala 210", "Sala server"],
+        "Fabricante": ["Fortinet", "Huawei", "Cisco", "Dell", "EMC", "Ubiquiti", "Intelbras"],
+        "Modelo": ["FG-100F", "S12700", "ISR4321", "R750", "XT380", "U6-LR", "CAT6"],
+        "Status": ["Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo"],
+        "Motivo": ["", "", "", "", "", "", ""],
+    })
 
 tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
 
@@ -288,189 +356,117 @@ tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 
 # ══════════════════════════════════════════════
 with tab_dados:
     st.markdown("### 📋 Gestão de Dados")
+    st.success("💾 **Dados são salvos automaticamente no banco SQLite!** Feche e reabra que os dados continuam.")
     
     sec("Análise de Risco")
-    dados_risco = pd.DataFrame({
-        "Ativo": ["Cabos na sala de servidores", "Pen drive ou HD", "Servidor de internet",
-                  "Switch de borda", "Firewall", "Router core"],
-        "Localidade": ["Sala de servidores - Bloco A", "TI - Sala 210", "Data Center - Rack 05",
-                       "Sala de rede - Andar 3", "Data Center - Rack 02", "Data Center - Rack 01"],
-        "Ameaça": ["Rompimento", "Contaminação por vírus", "Invasão externa",
-                   "Desligamento acidental", "Ataque DDoS", "Configuração errada"],
-        "Vulnerabilidade": ["Cabos fora de dutos", "Antivírus desatualizado",
-                            "Internet ligada direto na rede interna", "Sem trava física no rack",
-                            "Firmware desatualizado", "Senha fraca"],
-        "Probabilidade": ["Baixa", "Alta", "Média", "Média", "Baixa", "Média"],
-        "Impacto": ["Alto", "Alto", "Alto", "Médio", "Alto", "Alto"],
-    })
-    dados_risco["Nível do Risco"] = dados_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
-
     edited_risco = st.data_editor(
-        dados_risco, use_container_width=True, num_rows="dynamic",
+        edited_risco, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Ativo": st.column_config.TextColumn("Ativo", required=True),
-            "Localidade": st.column_config.TextColumn("Localidade"),
-            "Ameaça": st.column_config.TextColumn("Ameaça"),
-            "Vulnerabilidade": st.column_config.TextColumn("Vulnerabilidade"),
-            "Probabilidade": st.column_config.SelectboxColumn("Probabilidade", options=["Baixa", "Média", "Alta"]),
-            "Impacto": st.column_config.SelectboxColumn("Impacto", options=["Baixo", "Médio", "Alto"]),
-            "Nível do Risco": st.column_config.TextColumn("Nível", disabled=True),
+            "Probabilidade": st.column_config.SelectboxColumn(options=["Baixa", "Média", "Alta"]),
+            "Impacto": st.column_config.SelectboxColumn(options=["Baixo", "Médio", "Alto"]),
+            "Nível do Risco": st.column_config.TextColumn(disabled=True),
         }, hide_index=True,
     )
     edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
     sec("Inventário de Equipamentos")
-    dados_eq = pd.DataFrame({
-        "Equipamento": ["Firewall Fortinet", "Switch Core Huawei", "Router Cisco", "Servidor Dell",
-                        "Storage EMC", "Access Point", "Patch Panel"],
-        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infraestrutura"],
-        "Localidade": ["Data Center - Rack 02", "Data Center - Rack 01", "Data Center - Rack 01",
-                       "Data Center - Rack 03", "Data Center - Rack 04", "Sala 210 - Teto", "Sala de servidores"],
-        "Fabricante": ["Fortinet", "Huawei", "Cisco", "Dell", "EMC", "Ubiquiti", "Intelbras"],
-        "Modelo": ["FG-100F", "S12700", "ISR 4321", "PowerEdge R750", "Unity XT 380", "U6-LR", "CAT6"],
-        "Status": ["Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo", "Ativo"],
-        "Motivo": ["", "", "", "", "", "", ""],
-    })
-
     edited_eq = st.data_editor(
-        dados_eq, use_container_width=True, num_rows="dynamic",
+        edited_eq, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Equipamento": st.column_config.TextColumn("Equipamento", required=True),
-            "Tipo": st.column_config.SelectboxColumn("Tipo", options=["Segurança", "Rede", "Servidor", "Storage", "Infraestrutura"]),
-            "Localidade": st.column_config.TextColumn("Localidade"),
-            "Fabricante": st.column_config.TextColumn("Fabricante"),
-            "Modelo": st.column_config.TextColumn("Modelo"),
-            "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Em Manutenção", "Desativado", "Reserva"]),
-            "Motivo": st.column_config.TextColumn("Motivo / Observação"),
+            "Tipo": st.column_config.SelectboxColumn(options=["Segurança", "Rede", "Servidor", "Storage", "Infraestrutura"]),
+            "Status": st.column_config.SelectboxColumn(options=["Ativo", "Em Manutenção", "Desativado", "Reserva"]),
         }, hide_index=True,
     )
 
-    st.markdown("---")
-    st.markdown("### 📤 Exportar Relatório")
+    # Botões de salvamento
+    col_s1, col_s2, col_s3 = st.columns(3)
+    with col_s1:
+        if st.button("💾 SALVAR DADOS NO BANCO", use_container_width=True):
+            salvar_risco_db(edited_risco)
+            salvar_equipamento_db(edited_eq)
+            salvar_historico_db("analise_risco", edited_risco, st.session_state.usuario)
+            st.success("✅ Dados salvos permanentemente!")
     
-    col_exp1, col_exp2, col_exp3 = st.columns(3)
-    with col_exp1:
+    with col_s2:
         if st.button("📥 Exportar Excel", use_container_width=True):
-            with pd.ExcelWriter(f"relatorio_seguranca_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx", engine="openpyxl") as writer:
-                edited_risco.to_excel(writer, sheet_name="Analise_Risco", index=False)
+            with pd.ExcelWriter(f"relatorio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx") as writer:
+                edited_risco.to_excel(writer, sheet_name="Riscos", index=False)
                 edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
-            st.success("✅ Excel exportado com sucesso!")
-            salvar_historico_local("analise_risco", edited_risco, st.session_state.usuario)
-            salvar_historico_local("equipamentos", edited_eq, st.session_state.usuario)
+            st.success("Excel exportado!")
     
-    with col_exp2:
-        if st.button("📊 Exportar CSV", use_container_width=True):
-            csv_risco = edited_risco.to_csv(index=False)
-            st.download_button("Baixar Riscos CSV", csv_risco, f"riscos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
-            csv_eq = edited_eq.to_csv(index=False)
-            st.download_button("Baixar Equipamentos CSV", csv_eq, f"equipamentos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
-    
-    with col_exp3:
-        if st.button("🖨️ Imprimir", use_container_width=True):
-            html_full = f"""
-            <html>
-            <head><style>body{{font-family:Arial;margin:30px;}} table{{border-collapse:collapse;width:100%;}} th,td{{border:1px solid #ddd;padding:8px;}}</style></head>
-            <body>
-            <h1>Relatório de Segurança</h1>
-            <p>Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
-            <h2>Riscos</h2>{edited_risco.to_html(index=False)}
-            <h2>Equipamentos</h2>{edited_eq.to_html(index=False)}
-            <script>window.print();</script>
-            </body>
-            </html>
-            """
-            st.components.v1.html(html_full, height=500)
+    with col_s3:
+        if st.button("📊 Ver Métricas", use_container_width=True):
+            st.metric("Total Riscos", len(edited_risco))
+            st.metric("Riscos Altos", len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"]))
+            st.metric("Equipamentos", len(edited_eq))
 
 # ══════════════════════════════════════════════
 # TAB GRÁFICOS
 # ══════════════════════════════════════════════
 with tab_graficos:
-    st.markdown("### 📊 Dashboard de Gráficos")
-    
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    with col_m1:
-        st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
-    with col_m2:
-        risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-        st.markdown(mcard(risco_alto, "Riscos Altos", "c-red"), unsafe_allow_html=True)
-    with col_m3:
-        st.markdown(mcard(len(edited_eq), "Equipamentos", "c-green"), unsafe_allow_html=True)
-    with col_m4:
-        st.markdown(mcard(edited_risco["Localidade"].nunique(), "Localidades", "c-gray"), unsafe_allow_html=True)
+    st.markdown("### 📊 Dashboard")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1: st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
+    with col2: st.markdown(mcard(len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"]), "Riscos Altos", "c-red"), unsafe_allow_html=True)
+    with col3: st.markdown(mcard(len(edited_eq), "Equipamentos", "c-green"), unsafe_allow_html=True)
+    with col4: st.markdown(mcard(edited_eq["Fabricante"].nunique(), "Fabricantes", "c-blue"), unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown(stacked_bar(edited_risco, "Riscos por Localidade", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
-    st.markdown(stacked_bar(edited_risco, "Riscos por Probabilidade", CORES_RISCO, "Probabilidade", "Nível do Risco"), unsafe_allow_html=True)
     st.markdown(stacked_bar(edited_eq, "Equipamentos por Localidade", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
-    st.markdown(stacked_bar(edited_eq, "Equipamentos por Status", CORES_STATUS, "Status", "Tipo"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 # TAB PDCA
 # ══════════════════════════════════════════════
 with tab_pdca:
-    st.markdown("### 🔄 PDCA de Controle de Acesso")
-
-    fases = [
-        {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "2. Liderança", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "3. Planejamento", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "4. Suporte", "fase": "DO", "cor": "#d97706"},
-        {"nome": "5. Operação", "fase": "DO", "cor": "#d97706"},
-        {"nome": "6. Avaliação", "fase": "CHECK", "cor": "#16a34a"},
-        {"nome": "7. Melhoria", "fase": "ACT", "cor": "#7c3aed"},
-    ]
-    linhas = ["🎯 Objetivo", "⚙️ Ação Técnica", "📊 Indicador", "🚩 Evidência"]
-
-    cols = st.columns(len(fases), gap="small")
+    st.markdown("### 🔄 PDCA")
+    st.info("Preencha e clique em salvar para manter os dados")
+    
+    fases = ["1.Contexto", "2.Liderança", "3.Planejamento", "4.Suporte", "5.Operação", "6.Avaliação", "7.Melhoria"]
+    linhas = ["🎯 Objetivo", "⚙️ Ação", "📊 KPI", "🚩 Evidência"]
+    
+    cols = st.columns(7)
     dados_pdca = {}
-
-    for i, (col, f) in enumerate(zip(cols, fases)):
-        with col:
-            st.markdown(f"""
-            <div class='pdca-header' style='background:{f["cor"]}10;border:1px solid {f["cor"]}30;'>
-                <div style='font-size:9px;font-weight:600;color:{f["cor"]};'>{f["fase"]}</div>
-                <div style='font-size:12px;font-weight:600;color:{f["cor"]};'>{f["nome"]}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    
+    for i, fase in enumerate(fases):
+        with cols[i]:
+            st.markdown(f"**{fase}**")
             for j, linha in enumerate(linhas):
-                if i == 0:
-                    st.markdown(f"<div class='pdca-row-lbl'>{linha}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<div style='height:34px;'></div>", unsafe_allow_html=True)
-                dados_pdca[(i, j)] = st.text_area("", key=f"pdc_{i}_{j}", placeholder="...", label_visibility="collapsed", height=80)
-
-    if st.button("💾 Salvar PDCA no Histórico", use_container_width=True):
-        salvar_historico_local("pdca", dados_pdca, st.session_state.usuario)
+                key = f"pdca_{i}_{j}"
+                dados_pdca[(i, j)] = st.text_area(linha, key=key, height=80, placeholder="...")
+    
+    if st.button("💾 Salvar PDCA", use_container_width=True):
+        salvar_historico_db("pdca", str(dados_pdca), st.session_state.usuario)
         st.success("PDCA salvo no histórico!")
 
 # ══════════════════════════════════════════════
 # TAB HISTÓRICO
 # ══════════════════════════════════════════════
 with tab_historico:
-    st.markdown("### 📜 Histórico de Alterações")
+    st.markdown("### 📜 Histórico")
     
-    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca"])
-    
-    df_hist = carregar_historico_local(None if tipo_filtro == "Todos" else tipo_filtro)
+    tipo_filtro = st.selectbox("Filtrar", ["Todos", "analise_risco", "equipamentos", "pdca"])
+    df_hist = carregar_historico_db(None if tipo_filtro == "Todos" else tipo_filtro)
     
     if not df_hist.empty:
         st.dataframe(df_hist, use_container_width=True, hide_index=True)
         if st.button("🗑️ Limpar Histórico"):
-            st.session_state.historico = []
+            limpar_historico_db()
             st.rerun()
     else:
-        st.info("Nenhum registro no histórico.")
+        st.info("Nenhum registro")
 
 # ──────────────────────────────────────────────
-# SIDEBAR - RISCOS
+# SIDEBAR ATUALIZAÇÃO
 # ──────────────────────────────────────────────
 with sidebar_ph:
-    risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-    risco_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
-    risco_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
-    
+    alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+    medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
+    baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
     st.markdown(f"""
-    <div class='sb-badge sb-red'>🔴 Alto <span class='sb-num'>{risco_alto}</span></div>
-    <div class='sb-badge sb-yellow'>🟡 Médio <span class='sb-num'>{risco_medio}</span></div>
-    <div class='sb-badge sb-green'>🟢 Baixo <span class='sb-num'>{risco_baixo}</span></div>
+    <div class='sb-badge sb-red'>🔴 Alto <span class='sb-num'>{alto}</span></div>
+    <div class='sb-badge sb-yellow'>🟡 Médio <span class='sb-num'>{medio}</span></div>
+    <div class='sb-badge sb-green'>🟢 Baixo <span class='sb-num'>{baixo}</span></div>
     """, unsafe_allow_html=True)
+
+st.success("✅ **Dados salvos permanentemente em SQLite!** Feche e reabra o app que os dados continuam.")
