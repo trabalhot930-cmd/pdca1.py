@@ -125,8 +125,8 @@ def salvar_pdca_supabase(supabase, dados_pdca, usuario):
         supabase.table("pdca").delete().neq("id", 0).execute()
         for key, value in dados_pdca.items():
             fase_idx, linha_idx = key
-            fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operação", "6. Avaliação", "7. Melhoria"]
-            linhas = ["Objetivo Estratégico", "Ação Técnica", "Indicador (KPI)", "Evidência / Status"]
+            fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operacao", "6. Avaliacao", "7. Melhoria"]
+            linhas = ["Objetivo Estrategico", "Acao Tecnica", "Indicador KPI", "Evidencia Status"]
             
             supabase.table("pdca").insert({
                 "fase": fases[fase_idx],
@@ -154,8 +154,8 @@ def carregar_pdca_supabase(supabase):
             for item in response.data:
                 fase = item["fase"]
                 linha = item["linha"]
-                fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operação", "6. Avaliação", "7. Melhoria"]
-                linhas = ["Objetivo Estratégico", "Ação Técnica", "Indicador (KPI)", "Evidência / Status"]
+                fases = ["1. Contexto", "2. Lideranca", "3. Planejamento", "4. Suporte", "5. Operacao", "6. Avaliacao", "7. Melhoria"]
+                linhas = ["Objetivo Estrategico", "Acao Tecnica", "Indicador KPI", "Evidencia Status"]
                 
                 if fase in fases and linha in linhas:
                     i = fases.index(fase)
@@ -201,11 +201,9 @@ def fazer_logout():
     st.rerun()
 
 # ──────────────────────────────────────────────
-# FUNÇÃO DE HORA DO BRASIL (sem pytz)
+# FUNÇÃO DE HORA DO BRASIL
 # ──────────────────────────────────────────────
 def obter_hora_brasil():
-    """Retorna a hora atual no fuso horário de Brasília (UTC-3)"""
-    # UTC-3 para horário de Brasília
     utc_now = datetime.now(timezone.utc)
     brasilia_offset = timedelta(hours=-3)
     brasilia_time = utc_now + brasilia_offset
@@ -256,11 +254,11 @@ if not verificar_login():
     _, col, _ = st.columns([1, 1.3, 1])
     with col:
         st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
-        st.markdown("<div class='page-title' style='text-align:center'>🛡️ SecureOps</div>", unsafe_allow_html=True)
-        st.markdown("<div class='page-sub' style='text-align:center'>Sistema de Gestão de Segurança</div>", unsafe_allow_html=True)
+        st.markdown("<div class='page-title' style='text-align:center'>SecureOps</div>", unsafe_allow_html=True)
+        st.markdown("<div class='page-sub' style='text-align:center'>Sistema de Gestao de Seguranca</div>", unsafe_allow_html=True)
         
         with st.form("login_form"):
-            username = st.text_input("Usuário", placeholder="Digite seu usuário")
+            username = st.text_input("Usuario", placeholder="Digite seu usuario")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
             submit = st.form_submit_button("Entrar", use_container_width=True)
             if submit:
@@ -268,9 +266,9 @@ if not verificar_login():
                     st.success("Bem-vindo!")
                     st.rerun()
                 else:
-                    st.error("Usuário ou senha inválidos.")
+                    st.error("Usuario ou senha invalidos.")
         
-        st.markdown("<p style='text-align:center;font-size:11px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center;font-size:11px;'>Usuario: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
     st.stop()
 
 # ──────────────────────────────────────────────
@@ -279,12 +277,12 @@ if not verificar_login():
 def nivel_risco(prob, imp):
     prob = str(prob).lower().strip()
     imp = str(imp).lower().strip()
-    if (prob == "baixa" and imp in ["baixo", "médio"]) or (prob == "média" and imp == "baixo"):
-        return "🟢 Baixo"
-    elif (prob == "baixa" and imp == "alto") or (prob == "média" and imp == "médio") or (prob == "alta" and imp == "baixo"):
-        return "🟡 Médio"
+    if (prob == "baixa" and imp in ["baixo", "medio"]) or (prob == "media" and imp == "baixo"):
+        return "Verde Baixo"
+    elif (prob == "baixa" and imp == "alto") or (prob == "media" and imp == "medio") or (prob == "alta" and imp == "baixo"):
+        return "Amarelo Medio"
     else:
-        return "🔴 Alto"
+        return "Vermelho Alto"
 
 def grafico_rosca(dados, titulo, cores):
     if not dados or sum(dados.values()) == 0:
@@ -342,8 +340,8 @@ supabase = init_supabase()
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("<div class='sb-logo'>🛡️ SecureOps</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-sub'>Gestão de Segurança</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-logo'>SecureOps</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sb-sub'>Gestao de Seguranca</div>", unsafe_allow_html=True)
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     st.markdown(f"**{st.session_state.usuario}**", unsafe_allow_html=True)
     st.markdown("<div class='sb-role'>Administrador</div>", unsafe_allow_html=True)
@@ -353,20 +351,20 @@ with st.sidebar:
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     
     hora_br = obter_hora_brasil()
-    st.markdown(f"📅 {hora_br.strftime('%d/%m/%Y')}", unsafe_allow_html=True)
-    st.markdown(f"🕐 {hora_br.strftime('%H:%M:%S')}", unsafe_allow_html=True)
+    st.markdown(f"Data: {hora_br.strftime('%d/%m/%Y')}", unsafe_allow_html=True)
+    st.markdown(f"Hora: {hora_br.strftime('%H:%M:%S')}", unsafe_allow_html=True)
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     
-    if st.button("🚪 Sair", use_container_width=True):
+    if st.button("Sair", use_container_width=True):
         fazer_logout()
 
 # ──────────────────────────────────────────────
-# CABEÇALHO
+# CABECALHO
 # ──────────────────────────────────────────────
 hora_br = obter_hora_brasil()
 st.markdown(f"""
-<div class='page-title'>SecureOps - Gestão de Segurança</div>
-<div class='page-sub'>PDCA + Análise de Risco · {hora_br.strftime('%d/%m/%Y %H:%M')}</div>
+<div class='page-title'>SecureOps - Gestao de Seguranca</div>
+<div class='page-sub'>PDCA + Analise de Risco · {hora_br.strftime('%d/%m/%Y %H:%M')}</div>
 """, unsafe_allow_html=True)
 
 # Carregar dados
@@ -385,19 +383,19 @@ else:
     edited_risco = pd.DataFrame({
         "Ativo": ["Cabos na sala", "Pen drive", "Servidor internet", "Switch", "Firewall", "Router"],
         "Localidade": ["Sala A", "TI Sala 210", "DC Rack 05", "Sala rede", "DC Rack 02", "DC Rack 01"],
-        "Ameaça": ["Rompimento", "Vírus", "Invasão", "Desligamento", "DDoS", "Configuração"],
-        "Vulnerabilidade": ["Cabos soltos", "Antivírus antigo", "Rede interna", "Sem trava", "Firmware", "Senha fraca"],
-        "Probabilidade": ["Baixa", "Alta", "Média", "Média", "Baixa", "Média"],
-        "Impacto": ["Alto", "Alto", "Alto", "Médio", "Alto", "Alto"],
+        "Ameaca": ["Rompimento", "Virus", "Invasao", "Desligamento", "DDoS", "Configuracao"],
+        "Vulnerabilidade": ["Cabos soltos", "Antivirus antigo", "Rede interna", "Sem trava", "Firmware", "Senha fraca"],
+        "Probabilidade": ["Baixa", "Alta", "Media", "Media", "Baixa", "Media"],
+        "Impacto": ["Alto", "Alto", "Alto", "Medio", "Alto", "Alto"],
     })
-    edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
+    edited_risco["Nivel do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
 if dados_eq_carregado is not None and not dados_eq_carregado.empty:
     edited_eq = dados_eq_carregado
 else:
     edited_eq = pd.DataFrame({
         "Equipamento": ["Firewall Fortinet", "Switch Core Huawei", "Router Cisco", "Servidor Dell", "Storage EMC", "Access Point", "Patch Panel"],
-        "Tipo": ["Segurança", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infraestrutura"],
+        "Tipo": ["Seguranca", "Rede", "Rede", "Servidor", "Storage", "Rede", "Infraestrutura"],
         "Localidade": ["DC Rack 02", "DC Rack 01", "DC Rack 01", "DC Rack 03", "DC Rack 04", "Sala 210", "Sala servidores"],
         "Fabricante": ["Fortinet", "Huawei", "Cisco", "Dell", "EMC", "Ubiquiti", "Intelbras"],
         "Modelo": ["FG-100F", "S12700", "ISR4321", "R750", "XT380", "U6-LR", "CAT6"],
@@ -406,63 +404,62 @@ else:
     })
 
 # Abas
-tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
+tab1, tab2, tab3, tab4 = st.tabs(["Dados", "Graficos", "PDCA", "Historico"])
 
 # ══════════════════════════════════════════════
 # TAB DADOS
 # ══════════════════════════════════════════════
-with tab_dados:
-    sec("Análise de Risco")
+with tab1:
+    sec("Analise de Risco")
     edited_risco = st.data_editor(
         edited_risco, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Probabilidade": st.column_config.SelectboxColumn(options=["Baixa", "Média", "Alta"]),
-            "Impacto": st.column_config.SelectboxColumn(options=["Baixo", "Médio", "Alto"]),
-            "Nível do Risco": st.column_config.TextColumn(disabled=True),
+            "Probabilidade": st.column_config.SelectboxColumn(options=["Baixa", "Media", "Alta"]),
+            "Impacto": st.column_config.SelectboxColumn(options=["Baixo", "Medio", "Alto"]),
+            "Nivel do Risco": st.column_config.TextColumn(disabled=True),
         }, hide_index=True,
     )
-    edited_risco["Nível do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
+    edited_risco["Nivel do Risco"] = edited_risco.apply(lambda r: nivel_risco(r["Probabilidade"], r["Impacto"]), axis=1)
 
-    sec("Inventário de Equipamentos")
+    sec("Inventario de Equipamentos")
     edited_eq = st.data_editor(
         edited_eq, use_container_width=True, num_rows="dynamic",
         column_config={
-            "Tipo": st.column_config.SelectboxColumn(options=["Segurança", "Rede", "Servidor", "Storage", "Infraestrutura"]),
-            "Status": st.column_config.SelectboxColumn(options=["Ativo", "Inativo", "Em Manutenção", "Reserva"]),
+            "Tipo": st.column_config.SelectboxColumn(options=["Seguranca", "Rede", "Servidor", "Storage", "Infraestrutura"]),
+            "Status": st.column_config.SelectboxColumn(options=["Ativo", "Inativo", "Em Manutencao", "Reserva"]),
         }, hide_index=True,
     )
 
     st.markdown("---")
-    st.markdown("### 💾 Salvar no Supabase")
+    st.markdown("### Salvar no Supabase")
     
     col_s1, col_s2 = st.columns(2)
     with col_s1:
-        if st.button("☁️ Salvar Dados", use_container_width=True):
+        if st.button("Salvar Dados", use_container_width=True):
             if supabase:
                 ok1 = salvar_riscos_supabase(supabase, edited_risco, st.session_state.usuario)
                 ok2 = salvar_equipamentos_supabase(supabase, edited_eq, st.session_state.usuario)
                 if ok1 and ok2:
-                    st.success("✅ Dados salvos na nuvem!")
+                    st.success("Dados salvos na nuvem!")
                 else:
-                    st.error("❌ Erro ao salvar")
+                    st.error("Erro ao salvar")
             else:
-                st.error("❌ Supabase não conectado")
+                st.error("Supabase nao conectado")
     
     with col_s2:
-        if st.button("📥 Exportar Excel", use_container_width=True):
+        if st.button("Exportar Excel", use_container_width=True):
             with pd.ExcelWriter(f"relatorio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx") as writer:
                 edited_risco.to_excel(writer, sheet_name="Riscos", index=False)
                 edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
             st.success("Excel exportado!")
 
 # ══════════════════════════════════════════════
-# TAB GRÁFICOS
+# TAB GRAFICOS
 # ══════════════════════════════════════════════
-with tab_graficos:
-    st.markdown("### 📊 Dashboard de Gráficos")
+with tab2:
+    st.markdown("### Dashboard de Graficos")
     
-    # Filtro por localidade
-    st.markdown("#### 🔍 Filtros")
+    st.markdown("#### Filtros")
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         localidades_risco = ["Todas"] + sorted(edited_risco["Localidade"].unique().tolist())
@@ -472,88 +469,68 @@ with tab_graficos:
         localidades_eq = ["Todas"] + sorted(edited_eq["Localidade"].unique().tolist())
         filtro_local_eq = st.selectbox("Filtrar Equipamentos por Localidade:", localidades_eq)
     
-    # Aplicar filtros
     risco_filtrado = edited_risco if filtro_local_risco == "Todas" else edited_risco[edited_risco["Localidade"] == filtro_local_risco]
     eq_filtrado = edited_eq if filtro_local_eq == "Todas" else edited_eq[edited_eq["Localidade"] == filtro_local_eq]
     
     st.markdown("---")
     
-    # Métricas
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(mcard(len(risco_filtrado), "Total Riscos", "c-blue"), unsafe_allow_html=True)
     with col2:
-        st.markdown(mcard(len(risco_filtrado[risco_filtrado["Nível do Risco"] == "🔴 Alto"]), "Riscos Altos", "c-red"), unsafe_allow_html=True)
+        alto_count = len(risco_filtrado[risco_filtrado["Nivel do Risco"] == "Vermelho Alto"])
+        st.markdown(mcard(alto_count, "Riscos Altos", "c-red"), unsafe_allow_html=True)
     with col3:
         st.markdown(mcard(len(eq_filtrado), "Equipamentos", "c-green"), unsafe_allow_html=True)
     with col4:
-        st.markdown(mcard(len(eq_filtrado[eq_filtrado["Status"] == "Ativo"]), "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
+        ativos_count = len(eq_filtrado[eq_filtrado["Status"] == "Ativo"])
+        st.markdown(mcard(ativos_count, "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
     
     st.markdown("---")
     
-    # Gráficos em rosca
     col_g1, col_g2 = st.columns(2)
     
     with col_g1:
-        risco_nivel = risco_filtrado["Nível do Risco"].value_counts().to_dict()
-        cores_risco = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
-        st.markdown(grafico_rosca(risco_nivel, "Distribuição de Riscos", cores_risco), unsafe_allow_html=True)
+        risco_nivel = risco_filtrado["Nivel do Risco"].value_counts().to_dict()
+        cores_risco = {"Vermelho Alto": "#dc2626", "Amarelo Medio": "#d97706", "Verde Baixo": "#16a34a"}
+        st.markdown(grafico_rosca(risco_nivel, "Distribuicao de Riscos", cores_risco), unsafe_allow_html=True)
     
     with col_g2:
         status_eq = eq_filtrado["Status"].value_counts().to_dict()
-        cores_status = {"Ativo": "#16a34a", "Inativo": "#dc2626", "Em Manutenção": "#d97706", "Reserva": "#64748b"}
+        cores_status = {"Ativo": "#16a34a", "Inativo": "#dc2626", "Em Manutencao": "#d97706", "Reserva": "#64748b"}
         st.markdown(grafico_rosca(status_eq, "Status dos Equipamentos", cores_status), unsafe_allow_html=True)
-    
-    col_g3, col_g4 = st.columns(2)
-    
-    with col_g3:
-        risco_local = risco_filtrado["Localidade"].value_counts().head(5).to_dict()
-        if risco_local:
-            st.markdown(grafico_rosca(risco_local, "Top Localidades com Riscos", {"default": "#2563eb"}), unsafe_allow_html=True)
-    
-    with col_g4:
-        tipo_eq = eq_filtrado["Tipo"].value_counts().to_dict()
-        cores_tipo = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
-        st.markdown(grafico_rosca(tipo_eq, "Equipamentos por Tipo", cores_tipo), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 # TAB PDCA
 # ══════════════════════════════════════════════
-with tab_pdca:
-    st.markdown("### 🔄 PDCA de Controle de Acesso")
-    st.markdown("Preencha as 7 fases do ciclo PDCA para gestão de segurança")
+with tab3:
+    st.markdown("### PDCA de Controle de Acesso")
     
     fases = [
-        {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb", "desc": "Análise do ambiente"},
-        {"nome": "2. Liderança", "fase": "PLAN", "cor": "#2563eb", "desc": "Comprometimento"},
-        {"nome": "3. Planejamento", "fase": "PLAN", "cor": "#2563eb", "desc": "Objetivos e riscos"},
-        {"nome": "4. Suporte", "fase": "DO", "cor": "#d97706", "desc": "Recursos e treinamento"},
-        {"nome": "5. Operação", "fase": "DO", "cor": "#d97706", "desc": "Controles operacionais"},
-        {"nome": "6. Avaliação", "fase": "CHECK", "cor": "#16a34a", "desc": "Monitoramento"},
-        {"nome": "7. Melhoria", "fase": "ACT", "cor": "#7c3aed", "desc": "Ações corretivas"},
+        {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "2. Lideranca", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "3. Planejamento", "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "4. Suporte", "fase": "DO", "cor": "#d97706"},
+        {"nome": "5. Operacao", "fase": "DO", "cor": "#d97706"},
+        {"nome": "6. Avaliacao", "fase": "CHECK", "cor": "#16a34a"},
+        {"nome": "7. Melhoria", "fase": "ACT", "cor": "#7c3aed"},
     ]
     
-    linhas_pdca = [
-        "🎯 Objetivo Estratégico",
-        "⚙️ Ação Técnica (TI/OT)",
-        "📊 Indicador (KPI)",
-        "🚩 Evidência / Status",
-    ]
+    linhas_pdca = ["Objetivo Estrategico", "Acao Tecnica", "Indicador KPI", "Evidencia Status"]
     
     cols = st.columns(len(fases), gap="small")
     dados_pdca = {}
     
     if dados_pdca_carregado:
-        st.info("📀 PDCA carregado do Supabase")
+        st.info("PDCA carregado do Supabase")
         dados_pdca = dados_pdca_carregado
     
     for i, (col, fase) in enumerate(zip(cols, fases)):
         with col:
             st.markdown(f"""
             <div class='pdca-header' style='background:{fase["cor"]}10; border:1px solid {fase["cor"]}30;'>
-                <div style='font-size:10px; font-weight:700; color:{fase["cor"]}; text-transform:uppercase;'>{fase["fase"]}</div>
                 <div style='font-size:13px; font-weight:700; color:{fase["cor"]};'>{fase["nome"]}</div>
-                <div style='font-size:9px; color:#64748b;'>{fase["desc"]}</div>
+                <div style='font-size:10px; color:#64748b;'>{fase["fase"]}</div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -567,55 +544,52 @@ with tab_pdca:
                 valor_padrao = dados_pdca.get((i, j), "")
                 dados_pdca[(i, j)] = st.text_area(
                     label="", key=key,
-                    placeholder=f"Digite o {linha.lower()}...",
+                    placeholder=f"Digite...",
                     label_visibility="collapsed",
                     height=85,
                     value=valor_padrao
                 )
     
     st.markdown("---")
-    col_p1, col_p2, col_p3 = st.columns([1, 1, 2])
     
-    with col_p1:
-        if st.button("💾 Salvar PDCA", use_container_width=True):
-            if supabase:
-                if salvar_pdca_supabase(supabase, dados_pdca, st.session_state.usuario):
-                    st.success("✅ PDCA salvo na nuvem!")
-                else:
-                    st.error("❌ Erro ao salvar PDCA")
+    if st.button("Salvar PDCA", use_container_width=True):
+        if supabase:
+            if salvar_pdca_supabase(supabase, dados_pdca, st.session_state.usuario):
+                st.success("PDCA salvo na nuvem!")
             else:
-                st.error("❌ Supabase não conectado")
-    
-    with col_p2:
-        if st.button("📋 Gerar Relatório PDCA", use_container_width=True):
-            pdca_html = "<div style='font-family: Arial; padding: 20px;'>"
-            pdca_html += "<h2 style='color:#2563eb'>Relatório PDCA - Controle de Acesso</h2>"
-            pdca_html += f"<p>Data: {hora_br.strftime('%d/%m/%Y %H:%M')}</p><hr>"
-            
-            for i, fase in enumerate(fases):
-                pdca_html += f"<div style='margin-bottom: 30px;'>"
-                pdca_html += f"<h3 style='color:{fase['cor']}; border-left: 4px solid {fase['cor']}; padding-left: 10px;'>{fase['nome']} ({fase['fase']})</h3>"
-                for j, linha in enumerate(linhas_pdca):
-                    conteudo = dados_pdca.get((i, j), "")
-                    pdca_html += f"<div style='margin-bottom: 15px;'>"
-                    pdca_html += f"<strong>{linha}:</strong><br>"
-                    pdca_html += f"<div style='background:#f8fafc; padding: 10px; border-radius: 8px; margin-top: 5px;'>{conteudo if conteudo else '—'}</div>"
-                    pdca_html += f"</div>"
-                pdca_html += "</div><hr>"
-            pdca_html += "</div>"
-            
-            st.download_button(
-                label="📥 Baixar Relatório PDCA",
-                data=pdca_html,
-                file_name=f"relatorio_pdca_{hora_br.strftime('%Y%m%d_%H%M%S')}.html",
-                mime="text/html",
-                use_container_width=True
-            )
+                st.error("Erro ao salvar PDCA")
+        else:
+            st.error("Supabase nao conectado")
 
 # ══════════════════════════════════════════════
-# TAB HISTÓRICO
+# TAB HISTORICO
 # ══════════════════════════════════════════════
-with tab_historico:
-    st.markdown("### 📜 Histórico de Alterações")
+with tab4:
+    st.markdown("### Historico de Alteracoes")
     
-    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_
+    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca"])
+    
+    if supabase:
+        tipo_filtro_valor = None if tipo_filtro == "Todos" else tipo_filtro
+        df_hist = carregar_historico_supabase(supabase, tipo_filtro_valor)
+        if not df_hist.empty:
+            st.dataframe(df_hist, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum registro no historico")
+    else:
+        st.warning("Conecte ao Supabase para ver o historico")
+
+# ──────────────────────────────────────────────
+# SIDEBAR ATUALIZADA
+# ──────────────────────────────────────────────
+with sidebar_ph:
+    alto = len(edited_risco[edited_risco["Nivel do Risco"] == "Vermelho Alto"])
+    medio = len(edited_risco[edited_risco["Nivel do Risco"] == "Amarelo Medio"])
+    baixo = len(edited_risco[edited_risco["Nivel do Risco"] == "Verde Baixo"])
+    st.markdown(f"""
+    <div class='sb-badge sb-red'>Vermelho Alto <span class='sb-num'>{alto}</span></div>
+    <div class='sb-badge sb-yellow'>Amarelo Medio <span class='sb-num'>{medio}</span></div>
+    <div class='sb-badge sb-green'>Verde Baixo <span class='sb-num'>{baixo}</span></div>
+    """, unsafe_allow_html=True)
+
+st.success("Sistema completo funcionando!")
