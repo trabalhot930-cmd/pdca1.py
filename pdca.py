@@ -1,7 +1,63 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import hashlib
 
+# Tentar importar supabase, se não tiver, instalar
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+    st.warning("⚠️ Biblioteca supabase não instalada. Instale com: pip install supabase")
+
+# ──────────────────────────────────────────────
+# CONFIGURAÇÃO SUPABASE
+# ──────────────────────────────────────────────
+# Configurações do Supabase (substitua pelos seus dados)
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "")
+
+def init_supabase():
+    """Inicializa conexão com Supabase"""
+    if SUPABASE_AVAILABLE and SUPABASE_URL and SUPABASE_KEY:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return None
+
+def salvar_historico(supabase, tipo, dados, usuario):
+    """Salva dados no histórico do Supabase"""
+    if not supabase:
+        return False
+    try:
+        data = {
+            "tipo": tipo,
+            "dados": dados.to_dict('records') if isinstance(dados, pd.DataFrame) else dados,
+            "usuario": usuario,
+            "data_criacao": datetime.now().isoformat()
+        }
+        supabase.table("historico_seguranca").insert(data).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar histórico: {e}")
+        return False
+
+def carregar_historico(supabase, tipo=None):
+    """Carrega histórico do Supabase"""
+    if not supabase:
+        return pd.DataFrame()
+    try:
+        query = supabase.table("historico_seguranca").select("*").order("data_criacao", desc=True)
+        if tipo:
+            query = query.eq("tipo", tipo)
+        response = query.execute()
+        return pd.DataFrame(response.data)
+    except Exception as e:
+        st.error(f"Erro ao carregar histórico: {e}")
+        return pd.DataFrame()
+
+# ──────────────────────────────────────────────
+# CONFIGURAÇÃO DA PÁGINA
+# ──────────────────────────────────────────────
 st.set_page_config(
     layout="wide",
     page_title="SecureOps — Gestão de Segurança",
@@ -30,7 +86,7 @@ def fazer_logout():
     st.rerun()
 
 # ──────────────────────────────────────────────
-# CSS OTIMIZADO - SIDEBAR MAIS CLARA
+# CSS OTIMIZADO
 # ──────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -51,7 +107,7 @@ html, body, [class*="css"] {
 
 .block-container { padding: 1.5rem 2rem 2rem !important; max-width: 100% !important; }
 
-/* SIDEBAR MAIS CLARA */
+/* SIDEBAR */
 .sb-logo { font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; padding: 1rem 0 0.2rem; }
 .sb-sub  { font-size: 11px; color: #64748b; margin-bottom: 0.8rem; }
 .sb-div  { border: none; border-top: 1px solid #e2e8f0; margin: 0.8rem 0; }
@@ -81,7 +137,7 @@ html, body, [class*="css"] {
 }
 .stTabs [data-baseweb="tab-panel"] { padding-top: 1.5rem; }
 
-/* TÍTULOS PADRONIZADOS */
+/* TÍTULOS */
 .page-title { font-size: 24px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px; margin-bottom: 4px; }
 .page-sub   { font-size: 13px; color: #64748b; margin-bottom: 1.2rem; }
 
@@ -125,10 +181,6 @@ textarea {
 }
 textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37,99,235,0.1) !important; }
 
-/* DATA EDITOR */
-.stDataFrame { font-size: 12px !important; }
-[data-testid="stDataFrame"] table { font-size: 12px !important; }
-
 /* BUTTON */
 .stButton > button {
     background: #0f172a !important; color: #fff !important;
@@ -139,12 +191,13 @@ textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 2px rgba(37
 
 hr { border: none; border-top: 1px solid #e2e8f0 !important; margin: 0.8rem 0; }
 
-/* GRID PARA GRÁFICOS */
-.chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
+/* EXPORTER */
+.export-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 12px;
+    color: white;
+    margin-bottom: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -198,7 +251,6 @@ def stacked_bar(df, title, cores, col_group, col_stack):
     cats = list(pivot.columns)
     tmax = pivot.sum(axis=1).max() or 1
 
-    # Construir legenda
     legend_items = []
     for c in cats:
         cor = cores.get(c, "#94a3b8")
@@ -234,7 +286,16 @@ def sec(t):
     st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# SIDEBAR MAIS CLARA
+# INICIALIZAR SUPABASE
+# ──────────────────────────────────────────────
+supabase = init_supabase()
+if supabase:
+    st.success("✅ Conectado ao Supabase - Histórico disponível")
+elif SUPABASE_AVAILABLE:
+    st.info("ℹ️ Configure as credenciais do Supabase nos secrets do Streamlit")
+
+# ──────────────────────────────────────────────
+# SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
@@ -250,27 +311,24 @@ with st.sidebar:
     sidebar_ph = st.empty()
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     
-    # Navegação rápida
-    st.markdown("<div class='sb-lbl'>Navegação</div>", unsafe_allow_html=True)
-    st.markdown("📊 Dados", unsafe_allow_html=True)
-    st.markdown("📈 Gráficos", unsafe_allow_html=True)
-    st.markdown("🔄 PDCA", unsafe_allow_html=True)
+    st.markdown("<div class='sb-lbl'>Data/Hora</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='sb-time'>📅 {datetime.now().strftime('%d/%m/%Y')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='sb-time'>🕐 {datetime.now().strftime('%H:%M:%S')}</div>", unsafe_allow_html=True)
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
     
     if st.button("Encerrar Sessão", use_container_width=True):
         fazer_logout()
-    st.markdown(f"<div class='sb-time'>🕐 {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
-# CABEÇALHO
+# CABEÇALHO COM DATA
 # ──────────────────────────────────────────────
 st.markdown(f"""
 <div class='page-title'>SecureOps - Gestão de Segurança</div>
-<div class='page-sub'>PDCA + Análise de Risco · {datetime.now().strftime('%d/%m/%Y')}</div>
+<div class='page-sub'>PDCA + Análise de Risco · Relatório: {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
 """, unsafe_allow_html=True)
 
-# Criar abas: Dados, Gráficos, PDCA
-tab_dados, tab_graficos, tab_pdca = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA"])
+# Criar abas
+tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
 
 # ══════════════════════════════════════════════
 # TAB DADOS
@@ -336,26 +394,55 @@ with tab_dados:
         }, hide_index=True,
     )
 
-    # Métricas
-    sec("Indicadores")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1: st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
-    with col2: st.markdown(mcard(len(edited_eq), "Equipamentos", "c-green"), unsafe_allow_html=True)
-    with col3: 
-        ativos_eq = len(edited_eq[edited_eq["Status"] == "Ativo"])
-        st.markdown(mcard(ativos_eq, "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
-    with col4:
-        risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-        st.markdown(mcard(risco_alto, "Riscos Críticos", "c-red"), unsafe_allow_html=True)
+    # Exportação
+    st.markdown("---")
+    st.markdown("### 📤 Exportar Relatório")
+    
+    col_exp1, col_exp2, col_exp3 = st.columns(3)
+    with col_exp1:
+        if st.button("📥 Exportar Excel", use_container_width=True):
+            with pd.ExcelWriter(f"relatorio_seguranca_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx", engine="openpyxl") as writer:
+                edited_risco.to_excel(writer, sheet_name="Analise_Risco", index=False)
+                edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
+            
+            # Salvar no Supabase
+            if supabase:
+                salvar_historico(supabase, "analise_risco", edited_risco, st.session_state.usuario)
+                salvar_historico(supabase, "equipamentos", edited_eq, st.session_state.usuario)
+                st.success("✅ Dados salvos no histórico do Supabase!")
+    
+    with col_exp2:
+        if st.button("📊 Exportar CSV", use_container_width=True):
+            csv_risco = edited_risco.to_csv(index=False)
+            csv_eq = edited_eq.to_csv(index=False)
+            st.download_button("Baixar Riscos CSV", csv_risco, f"riscos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
+            st.download_button("Baixar Equipamentos CSV", csv_eq, f"equipamentos_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
+    
+    with col_exp3:
+        if st.button("🖨️ Imprimir Relatório", use_container_width=True):
+            r_html = edited_risco.to_html(index=False)
+            e_html = edited_eq.to_html(index=False)
+            html_full = f"""<html><head><style>
+            body{{font-family:'Inter',Arial;margin:30px;}}
+            h1{{font-size:20px;}} h2{{font-size:14px;margin:20px 0 8px;color:#2563eb;}}
+            table{{border-collapse:collapse;width:100%;}}
+            th,td{{border:1px solid #cbd5e1;padding:6px 8px;}}
+            th{{background:#0f172a;color:#fff;}}
+            </style></head><body>
+            <h1>Relatório de Gestão de Segurança</h1>
+            <p>Gerado por: {st.session_state.usuario} · {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+            <h2>Análise de Risco</h2>{r_html}
+            <h2>Equipamentos TI/OT</h2>{e_html}
+            <script>window.onload=function(){{window.print();}}</script>
+            </body></html>"""
+            st.components.v1.html(html_full, height=500)
 
 # ══════════════════════════════════════════════
-# TAB GRÁFICOS - PÁGINA EXCLUSIVA PARA GRÁFICOS
+# TAB GRÁFICOS
 # ══════════════════════════════════════════════
 with tab_graficos:
     st.markdown("### 📊 Dashboard de Gráficos")
-    st.markdown("<div class='page-sub'>Análise visual de riscos, localidades e equipamentos</div>", unsafe_allow_html=True)
     
-    # Métricas rápidas
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
         st.markdown(mcard(len(edited_risco), "Total Riscos", "c-blue"), unsafe_allow_html=True)
@@ -371,82 +458,11 @@ with tab_graficos:
     
     st.markdown("---")
     
-    # GRÁFICO 1: Riscos por Localidade
-    st.markdown(stacked_bar(edited_risco, "📍 Riscos por Localidade (Distribuição por Nível)", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
-    
-    # GRÁFICO 2: Riscos por Probabilidade
+    # Gráficos
+    st.markdown(stacked_bar(edited_risco, "📍 Riscos por Localidade", CORES_RISCO, "Localidade", "Nível do Risco"), unsafe_allow_html=True)
     st.markdown(stacked_bar(edited_risco, "📊 Riscos por Probabilidade", CORES_RISCO, "Probabilidade", "Nível do Risco"), unsafe_allow_html=True)
-    
-    # GRÁFICO 3: Equipamentos por Localidade
-    st.markdown(stacked_bar(edited_eq, "🏢 Equipamentos por Localidade (Distribuição por Tipo)", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
-    
-    # GRÁFICO 4: Equipamentos por Tipo e Status
-    st.markdown(stacked_bar(edited_eq, "⚙️ Equipamentos por Tipo (Status)", CORES_STATUS, "Tipo", "Status"), unsafe_allow_html=True)
-    
-    # GRÁFICO 5: Equipamentos por Fabricante
-    if len(edited_eq) > 0:
-        st.markdown("### 🏭 Equipamentos por Fabricante")
-        fabricante_count = edited_eq["Fabricante"].value_counts().to_dict()
-        if fabricante_count:
-            max_fab = max(fabricante_count.values()) or 1
-            fab_html = "<div class='chart-card'><div class='chart-title'>Distribuição por Fabricante</div>"
-            for fab, qtd in fabricante_count.items():
-                percentual = (qtd / max_fab) * 100
-                fab_html += f"""
-                <div class='sbar-wrap'>
-                    <div class='sbar-label'>
-                        <span>{fab}</span>
-                        <span style='font-weight:600;color:#0f172a'>{qtd}</span>
-                    </div>
-                    <div class='sbar-track' style='width:{percentual}%'>
-                        <div class='sbar-seg' style='width:100%;background:#7c3aed;'>{qtd if percentual > 8 else ''}</div>
-                    </div>
-                </div>"""
-            fab_html += "</div>"
-            st.markdown(fab_html, unsafe_allow_html=True)
-    
-    # GRÁFICO 6: Resumo Geral
-    st.markdown("### 📈 Resumo Geral")
-    col_res1, col_res2 = st.columns(2)
-    with col_res1:
-        # Distribuição de riscos
-        risco_count = edited_risco["Nível do Risco"].value_counts().to_dict()
-        risco_html = "<div class='chart-card'><div class='chart-title'>Distribuição de Riscos</div>"
-        for nivel, qtd in risco_count.items():
-            cor = CORES_RISCO.get(nivel, "#94a3b8")
-            percentual = (qtd / len(edited_risco)) * 100 if len(edited_risco) > 0 else 0
-            risco_html += f"""
-            <div class='sbar-wrap'>
-                <div class='sbar-label'>
-                    <span>{nivel}</span>
-                    <span style='font-weight:600;color:#0f172a'>{qtd} ({percentual:.0f}%)</span>
-                </div>
-                <div class='sbar-track' style='width:100%'>
-                    <div class='sbar-seg' style='width:{percentual}%;background:{cor};'>{percentual:.0f}%</div>
-                </div>
-            </div>"""
-        risco_html += "</div>"
-        st.markdown(risco_html, unsafe_allow_html=True)
-    
-    with col_res2:
-        # Status dos equipamentos
-        status_count = edited_eq["Status"].value_counts().to_dict()
-        status_html = "<div class='chart-card'><div class='chart-title'>Status dos Equipamentos</div>"
-        for status, qtd in status_count.items():
-            cor = CORES_STATUS.get(status, "#94a3b8")
-            percentual = (qtd / len(edited_eq)) * 100 if len(edited_eq) > 0 else 0
-            status_html += f"""
-            <div class='sbar-wrap'>
-                <div class='sbar-label'>
-                    <span>{status}</span>
-                    <span style='font-weight:600;color:#0f172a'>{qtd} ({percentual:.0f}%)</span>
-                </div>
-                <div class='sbar-track' style='width:100%'>
-                    <div class='sbar-seg' style='width:{percentual}%;background:{cor};'>{percentual:.0f}%</div>
-                </div>
-            </div>"""
-        status_html += "</div>"
-        st.markdown(status_html, unsafe_allow_html=True)
+    st.markdown(stacked_bar(edited_eq, "🏢 Equipamentos por Localidade", CORES_TIPO, "Localidade", "Tipo"), unsafe_allow_html=True)
+    st.markdown(stacked_bar(edited_eq, "⚙️ Equipamentos por Tipo", CORES_STATUS, "Tipo", "Status"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
 # TAB PDCA
@@ -497,6 +513,15 @@ with tab_pdca:
     col_b, _, _ = st.columns([1.5, 3, 1.5])
     with col_b:
         if st.button("🖨️ Gerar Relatório Completo", use_container_width=True):
+            # Salvar PDCA no Supabase
+            if supabase:
+                pdca_dict = {}
+                for i, f in enumerate(fases):
+                    for j, linha in enumerate(linhas):
+                        key = f"pdca_{i}_{j}"
+                        pdca_dict[f"{f['nome']}_{linha}"] = dados_pdca.get((i, j), "")
+                salvar_historico(supabase, "pdca", pdca_dict, st.session_state.usuario)
+            
             r_html = edited_risco.to_html(index=False)
             e_html = edited_eq.to_html(index=False)
             p_html = "<table style='width:100%;border-collapse:collapse;font-size:12px;'>"
@@ -525,16 +550,25 @@ with tab_pdca:
             </body></html>"""
             st.components.v1.html(html_full, height=500)
 
-# ──────────────────────────────────────────────
-# SIDEBAR - RISCOS (ATUALIZADO)
-# ──────────────────────────────────────────────
-with sidebar_ph:
-    risco_alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
-    risco_medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
-    risco_baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
+# ══════════════════════════════════════════════
+# TAB HISTÓRICO
+# ══════════════════════════════════════════════
+with tab_historico:
+    st.markdown("### 📜 Histórico de Alterações")
     
-    st.markdown(f"""
-    <div class='sb-badge sb-red'>   <span>🔴 Alto</span>  <span class='sb-num'>{risco_alto}</span>  </div>
-    <div class='sb-badge sb-yellow'><span>🟡 Médio</span> <span class='sb-num'>{risco_medio}</span> </div>
-    <div class='sb-badge sb-green'> <span>🟢 Baixo</span> <span class='sb-num'>{risco_baixo}</span> </div>
-    """, unsafe_allow_html=True)
+    if supabase:
+        col_h1, col_h2 = st.columns(2)
+        with col_h1:
+            tipo_filtro = st.selectbox("Filtrar por tipo:", ["Todos", "analise_risco", "equipamentos", "pdca"])
+        
+        with col_h2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 Atualizar Histórico", use_container_width=True):
+                st.rerun()
+        
+        # Carregar histórico
+        tipo = None if tipo_filtro == "Todos" else tipo_filtro
+        historico_df = carregar_historico(supabase, tipo)
+        
+        if not historico_df.empty:
+            st.markdown(f"**Total de registros:** {len(historico_df
