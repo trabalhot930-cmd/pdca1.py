@@ -10,8 +10,91 @@ st.set_page_config(layout="wide", page_title="PDCA + Análise de Risco", page_ic
 st.title("🛡️ PDCA de Controle de Acesso + Análise de Risco")
 st.markdown("---")
 
+# CSS para garantir alinhamento perfeito
+st.markdown("""
+<style>
+    /* Garantir que todas as colunas tenham mesma largura */
+    .stColumn {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+    
+    /* Uniformizar altura dos textareas */
+    textarea {
+        height: 120px !important;
+        min-height: 120px !important;
+        max-height: 120px !important;
+        resize: vertical !important;
+        font-size: 13px !important;
+        line-height: 1.4 !important;
+    }
+    
+    /* Estilo dos cabeçalhos das colunas */
+    .pdca-header {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        border-radius: 10px 10px 0 0;
+        margin-bottom: 10px;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+    
+    /* Títulos das linhas */
+    .row-title {
+        background-color: #f8f9fa;
+        padding: 12px 8px;
+        margin: 5px 0;
+        border-left: 4px solid;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 13px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Container para cada célula do PDCA */
+    .pdca-cell {
+        margin-bottom: 10px;
+        height: 130px;
+    }
+    
+    /* Garantir altura consistente */
+    .stTextArea > div {
+        height: 120px !important;
+    }
+    
+    /* Remover padding extra */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
+    
+    /* Melhorar visualização em telas menores */
+    @media (max-width: 1200px) {
+        .pdca-header {
+            font-size: 11px;
+            white-space: normal;
+            padding: 5px;
+        }
+        .row-title {
+            font-size: 11px;
+            padding: 8px 4px;
+        }
+        textarea {
+            font-size: 11px !important;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # -------------------------------
-# PARTE 1: ANÁLISE DE RISCO QUALITATIVA (COMPLETAMENTE EDITÁVEL)
+# PARTE 1: ANÁLISE DE RISCO QUALITATIVA
 # -------------------------------
 with st.expander("📊 Matriz de Análise de Risco (Probabilidade x Impacto)", expanded=True):
     st.markdown("""
@@ -29,7 +112,7 @@ with st.expander("📊 Matriz de Análise de Risco (Probabilidade x Impacto)", e
     📍 A coluna **Localidade** ajuda a mapear onde está o ativo
     """)
 
-    # Dados iniciais (com Localidade)
+    # Dados iniciais
     dados_risco_inicial = pd.DataFrame({
         "Ativo": ["Cabos na sala de servidores", "Pen drive ou HD", "Servidor de internet", "Switch de borda"],
         "Localidade": ["Sala de servidores - Bloco A", "TI - Sala 210", "Data Center - Rack 05", "Sala de rede - Andar 3"],
@@ -51,42 +134,33 @@ with st.expander("📊 Matriz de Análise de Risco (Probabilidade x Impacto)", e
         else:
             return "🔴 Alto"
 
-    # Adicionar coluna de nível do risco
     dados_risco_inicial["Nível do risco"] = dados_risco_inicial.apply(
         lambda row: nivel_risco(row["Probabilidade"], row["Impacto"]), axis=1
     )
 
-    # Configuração do data_editor completo
+    # Data editor editável
     edited_risco = st.data_editor(
         dados_risco_inicial,
         use_container_width=True,
-        num_rows="dynamic",  # Permite adicionar/excluir linhas
+        num_rows="dynamic",
         column_config={
-            "Ativo": st.column_config.TextColumn("🏷️ Ativo", required=True),
-            "Localidade": st.column_config.TextColumn("📍 Localidade", required=True),
-            "Ameaça": st.column_config.TextColumn("⚠️ Ameaça", required=True),
-            "Vulnerabilidade": st.column_config.TextColumn("🔓 Vulnerabilidade", required=True),
-            "Probabilidade": st.column_config.SelectboxColumn(
-                "📊 Probabilidade",
-                options=["Baixa", "Média", "Alta"],
-                required=True
-            ),
-            "Impacto": st.column_config.SelectboxColumn(
-                "💥 Impacto",
-                options=["Baixo", "Médio", "Alto"],
-                required=True
-            ),
-            "Nível do risco": st.column_config.TextColumn("🎯 Nível do Risco", disabled=True),
+            "Ativo": st.column_config.TextColumn("🏷️ Ativo", required=True, width="medium"),
+            "Localidade": st.column_config.TextColumn("📍 Localidade", required=True, width="medium"),
+            "Ameaça": st.column_config.TextColumn("⚠️ Ameaça", required=True, width="medium"),
+            "Vulnerabilidade": st.column_config.TextColumn("🔓 Vulnerabilidade", required=True, width="large"),
+            "Probabilidade": st.column_config.SelectboxColumn("📊 Probabilidade", options=["Baixa", "Média", "Alta"], required=True, width="small"),
+            "Impacto": st.column_config.SelectboxColumn("💥 Impacto", options=["Baixo", "Médio", "Alto"], required=True, width="small"),
+            "Nível do risco": st.column_config.TextColumn("🎯 Nível", disabled=True, width="small"),
         },
         hide_index=True,
     )
 
-    # Recalcular risco após qualquer edição
+    # Recalcular risco
     edited_risco["Nível do risco"] = edited_risco.apply(
         lambda row: nivel_risco(row["Probabilidade"], row["Impacto"]), axis=1
     )
 
-    # Estatísticas rápidas
+    # Estatísticas
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total de Riscos", len(edited_risco))
@@ -100,151 +174,160 @@ with st.expander("📊 Matriz de Análise de Risco (Probabilidade x Impacto)", e
         qtd_baixo = len(edited_risco[edited_risco["Nível do risco"] == "🟢 Baixo"])
         st.metric("🟢 Riscos Baixos", qtd_baixo)
 
-    # Filtro por Localidade
-    st.markdown("---")
-    with st.expander("🔍 Filtrar por Localidade"):
-        localidades = ["Todas"] + sorted(edited_risco["Localidade"].unique().tolist())
-        filtro_local = st.selectbox("Selecione a localidade:", localidades)
-        
-        if filtro_local != "Todas":
-            risco_filtrado = edited_risco[edited_risco["Localidade"] == filtro_local]
-            st.dataframe(risco_filtrado, use_container_width=True, hide_index=True)
-            
-            # Mostrar resumo da localidade
-            st.caption(f"📍 Localidade: {filtro_local} - Total de riscos: {len(risco_filtrado)}")
-            st.progress(len(risco_filtrado) / len(edited_risco) if len(edited_risco) > 0 else 0)
-    
-    # Botão para exportar análise de risco
-    col_exp1, col_exp2 = st.columns(2)
-    with col_exp1:
-        if st.button("📥 Exportar Análise de Risco (CSV)", use_container_width=True):
-            csv = edited_risco.to_csv(index=False)
-            st.download_button(
-                label="📎 Clique para baixar CSV",
-                data=csv,
-                file_name=f"analise_risco_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-
 st.markdown("---")
 
 # -------------------------------
-# PARTE 2: PDCA (MELHORADO)
+# PARTE 2: PDCA COM ALINHAMENTO PERFEITO
 # -------------------------------
-st.subheader("🔄 PDCA de Controle de Acesso")
+st.subheader("🔄 PDCA de Controle de Acesso - Gestão de Segurança")
 
-colunas = [
-    {"nome": "1. Contexto (P)", "cor": "#1E88E5"},
-    {"nome": "2. Liderança (P)", "cor": "#1E88E5"},
-    {"nome": "3. Planejamento (P)", "cor": "#1E88E5"},
-    {"nome": "4. Suporte (D)", "cor": "#E53935"},
-    {"nome": "5. Operação (D)", "cor": "#E53935"},
-    {"nome": "6. Avaliação (C)", "cor": "#43A047"},
-    {"nome": "7. Melhoria (A)", "cor": "#FB8C00"}
+# Definição das colunas do PDCA
+colunas_pdca = [
+    {"nome": "1. Contexto (P)", "cor": "#1E88E5", "desc": "Análise do ambiente interno/externo"},
+    {"nome": "2. Liderança (P)", "cor": "#1E88E5", "desc": "Comprometimento da alta direção"},
+    {"nome": "3. Planejamento (P)", "cor": "#1E88E5", "desc": "Objetivos e riscos"},
+    {"nome": "4. Suporte (D)", "cor": "#E53935", "desc": "Recursos, competência, comunicação"},
+    {"nome": "5. Operação (D)", "cor": "#E53935", "desc": "Controles operacionais"},
+    {"nome": "6. Avaliação (C)", "cor": "#43A047", "desc": "Monitoramento e medição"},
+    {"nome": "7. Melhoria (A)", "cor": "#FB8C00", "desc": "Ações corretivas e preventivas"}
 ]
 
-linhas = [
-    "🎯 Objetivo Estratégico",
-    "⚙️ Ação Técnica (TI/OT)",
-    "📊 Indicador (KPI)",
-    "🚩 Evidência / Status"
+# Linhas do PDCA
+linhas_pdca = [
+    {"nome": "🎯 Objetivo Estratégico", "icon": "🎯", "tooltip": "Meta principal do controle de acesso"},
+    {"nome": "⚙️ Ação Técnica (TI/OT)", "icon": "⚙️", "tooltip": "Implementações técnicas e operacionais"},
+    {"nome": "📊 Indicador (KPI)", "icon": "📊", "tooltip": "Métrica para medir sucesso"},
+    {"nome": "🚩 Evidência / Status", "icon": "🚩", "tooltip": "Comprovação da execução"}
 ]
 
-# CSS para melhorar visualização
-st.markdown("""
-<style>
-    textarea {
-        height: 100px !important;
-    }
-    [data-testid="stExpander"] summary {
-        font-size: 1.2rem;
-        font-weight: bold;
-    }
-    .stDataFrame {
-        font-size: 12px;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Criar colunas com largura igual
+cols = st.columns(len(colunas_pdca), gap="small")
 
-cols = st.columns(len(colunas))
+# Dicionário para armazenar dados
 dados_pdca = {}
 
-for i, col_info in enumerate(colunas):
+# Renderizar cabeçalhos e células
+for i, col_info in enumerate(colunas_pdca):
     with cols[i]:
+        # Cabeçalho da coluna
         st.markdown(f"""
-            <div style="background-color: {col_info['cor']}; padding: 10px; border-radius: 10px 10px 0 0; text-align: center; color: white; font-weight: bold;">
-                {col_info['nome']}
+            <div class="pdca-header" style="background-color: {col_info['cor']}; color: white;">
+                <div>
+                    <strong>{col_info['nome']}</strong><br>
+                    <small style="font-size: 10px; opacity: 0.9;">{col_info['desc']}</small>
+                </div>
             </div>
         """, unsafe_allow_html=True)
-        for j, titulo in enumerate(linhas):
-            st.markdown(f"**{titulo}**")
+        
+        # Para cada linha
+        for j, linha_info in enumerate(linhas_pdca):
+            # Título da linha (apenas na primeira coluna)
+            if i == 0:
+                st.markdown(f"""
+                    <div class="row-title" style="border-left-color: {col_info['cor']};">
+                        <div>
+                            <strong>{linha_info['nome']}</strong><br>
+                            <small style="font-size: 10px; color: #666;">{linha_info['tooltip']}</small>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Espaço para alinhar verticalmente
+                st.markdown(f"""
+                    <div class="row-title" style="border-left-color: transparent; background-color: transparent;">
+                        &nbsp;
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            # Campo de texto
             key_id = f"pdca_{i}_{j}"
-            # Adicionar sugestão baseada nos riscos altos
-            sugestao = ""
-            if titulo == "⚙️ Ação Técnica (TI/OT)" and len(edited_risco[edited_risco["Nível do risco"] == "🔴 Alto"]) > 0:
-                sugestao = " (⚠️ Prioridade: tratar riscos altos primeiro)"
             valor = st.text_area(
                 label="",
                 key=key_id,
-                placeholder=f"Digite o {titulo.lower()}{sugestao}...",
+                placeholder=f"Digite aqui...",
                 label_visibility="collapsed",
-                height=100
+                help=f"{linha_info['tooltip']}"
             )
             dados_pdca[(i, j)] = valor
+            
+            # Pequeno espaço entre campos
+            st.markdown("<div style='margin-bottom: 5px;'></div>", unsafe_allow_html=True)
 
-# -------------------------------
-# PARTE 3: IMPRESSÃO UNIFICADA E EXPORTAÇÃO
-# -------------------------------
+# Botões de ação
 st.markdown("---")
-col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 2])
 
 with col_btn1:
-    if st.button("🖨️ Imprimir Relatório Completo", use_container_width=True):
-        # Gerar HTML da análise de risco com Localidade
-        risco_html = edited_risco.to_html(index=False, escape=False)
+    if st.button("🖨️ Imprimir Relatório", use_container_width=True):
+        # Gerar HTML do PDCA com alinhamento perfeito
+        pdca_html = """
+        <style>
+            .pdca-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-family: Arial, sans-serif;
+            }
+            .pdca-table th {
+                padding: 12px;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                border: 1px solid #ddd;
+            }
+            .pdca-table td {
+                padding: 10px;
+                vertical-align: top;
+                border: 1px solid #ddd;
+                background-color: #f9f9f9;
+            }
+            .pdca-table .row-label {
+                background-color: #f0f0f0;
+                font-weight: bold;
+                width: 120px;
+            }
+            .pdca-content {
+                min-height: 100px;
+            }
+        </style>
+        """
         
-        # Gerar HTML do PDCA
-        pdca_html = "<table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width: 100%;'>"
+        pdca_html += "<table class='pdca-table'>"
+        # Cabeçalho
         pdca_html += "<tr>"
-        for col in colunas:
-            pdca_html += f"<th style='background:{col['cor']}; color:white'>{col['nome']}</th>"
+        pdca_html += "<th style='background:#666;'>Área</th>"
+        for col in colunas_pdca:
+            pdca_html += f"<th style='background:{col['cor']};'>{col['nome']}</th>"
         pdca_html += "</tr>"
-        for j, linha_nome in enumerate(linhas):
+        
+        # Linhas
+        for j, linha_info in enumerate(linhas_pdca):
             pdca_html += "<tr>"
-            for i in range(len(colunas)):
+            pdca_html += f"<td class='row-label' style='background:#f5f5f5;'>{linha_info['nome']}</td>"
+            for i in range(len(colunas_pdca)):
                 conteudo = dados_pdca.get((i, j), "").replace("\n", "<br>")
-                pdca_html += f"<td><b>{linha_nome}</b><br>{conteudo}</td>"
+                pdca_html += f"<td><div class='pdca-content'>{conteudo if conteudo else '—'}</div></td>"
             pdca_html += "</tr>"
         pdca_html += "</table>"
-
-        # Resumo de riscos por localidade
-        resumo_localidade = edited_risco.groupby(["Localidade", "Nível do risco"]).size().unstack(fill_value=0)
-        resumo_html = resumo_localidade.to_html()
-
+        
+        # HTML completo
+        risco_html = edited_risco.to_html(index=False, escape=False)
         html_completo = f"""
         <html>
         <head>
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                h1, h2, h3 {{ color: #1E3A5F; }}
+                h1, h2 {{ color: #1E3A5F; }}
                 table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
                 th, td {{ border: 1px solid #aaa; padding: 8px; vertical-align: top; }}
                 th {{ background-color: #f2f2f2; }}
-                .risco-alto {{ background-color: #ffcccc; }}
-                .risco-medio {{ background-color: #fff2cc; }}
-                .risco-baixo {{ background-color: #ccffcc; }}
             </style>
         </head>
         <body>
             <h1>🛡️ Relatório de Segurança - PDCA + Análise de Risco</h1>
-            <p><strong>Data de emissão:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Data:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
             
-            <h2>📊 Matriz de Análise de Risco (com Localidade)</h2>
+            <h2>📊 Análise de Risco</h2>
             {risco_html}
-            
-            <h2>📍 Resumo de Riscos por Localidade</h2>
-            {resumo_html}
             
             <h2>🔄 PDCA de Controle de Acesso</h2>
             {pdca_html}
@@ -256,78 +339,71 @@ with col_btn1:
         st.components.v1.html(html_completo, height=600)
 
 with col_btn2:
-    if st.button("📊 Exportar Tudo para Excel", use_container_width=True):
+    if st.button("📥 Exportar Excel", use_container_width=True):
         with pd.ExcelWriter("relatorio_seguranca.xlsx", engine="openpyxl") as writer:
             edited_risco.to_excel(writer, sheet_name="Analise_Risco", index=False)
             
-            # Exportar PDCA para Excel
+            # Exportar PDCA formatado
             pdca_df = pd.DataFrame()
-            for i, col_info in enumerate(colunas):
-                for j, linha_nome in enumerate(linhas):
-                    key = (i, j)
-                    pdca_df.loc[linha_nome, col_info["nome"]] = dados_pdca.get(key, "")
-            pdca_df.to_excel(writer, sheet_name="PDCA")
+            for j, linha_info in enumerate(linhas_pdca):
+                row_data = {"Área": linha_info['nome']}
+                for i, col_info in enumerate(colunas_pdca):
+                    row_data[col_info['nome']] = dados_pdca.get((i, j), "")
+                pdca_df = pd.concat([pdca_df, pd.DataFrame([row_data])], ignore_index=True)
+            pdca_df.to_excel(writer, sheet_name="PDCA", index=False)
         
         with open("relatorio_seguranca.xlsx", "rb") as f:
             st.download_button(
-                label="📎 Baixar Excel",
+                label="📎 Baixar",
                 data=f,
-                file_name=f"relatorio_seguranca_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                file_name=f"relatorio_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
 
 with col_btn3:
-    st.caption("✅ A análise de risco (com localidade) alimenta diretamente as ações do PDCA")
+    if st.button("🗑️ Limpar PDCA", use_container_width=True):
+        for i in range(len(colunas_pdca)):
+            for j in range(len(linhas_pdca)):
+                st.session_state[f"pdca_{i}_{j}"] = ""
+        st.rerun()
+
+with col_btn4:
+    st.caption("✅ PDCA alinhado | Riscos por localidade | Gestão integrada")
 
 # -------------------------------
-# PARTE 4: SUGESTÕES INTELIGENTES BASEADAS NOS RISCOS
-# -------------------------------
-with st.expander("💡 Sugestões de melhoria baseadas na sua análise de risco"):
-    # Identificar riscos altos por localidade
-    riscos_altos = edited_risco[edited_risco["Nível do risco"] == "🔴 Alto"]
-    
-    if len(riscos_altos) > 0:
-        st.markdown("### 🔴 **Riscos Altos Identificados (Prioridade Máxima)**")
-        for _, row in riscos_altos.iterrows():
-            st.markdown(f"""
-            - **📍 {row['Localidade']}** | **Ativo:** {row['Ativo']}  
-                - **Ameaça:** {row['Ameaça']}  
-                - **Vulnerabilidade:** {row['Vulnerabilidade']}  
-                - **Ação sugerida no PDCA:**  
-                    → Incluir no *Planejamento* uma ação específica para mitigar este risco  
-                    → Reforçar no *Suporte* (treinamento, recursos)  
-                    → Monitorar na *Avaliação* com indicador específico
-            """)
-    else:
-        st.success("✅ Nenhum risco alto identificado! Continue monitorando os riscos médios.")
-    
-    # Riscos médios
-    riscos_medios = edited_risco[edited_risco["Nível do risco"] == "🟡 Médio"]
-    if len(riscos_medios) > 0:
-        st.markdown("### 🟡 **Riscos Médios (Planejamento de médio prazo)**")
-        for _, row in riscos_medios.iterrows():
-            st.markdown(f"- **{row['Localidade']}** - {row['Ativo']}: {row['Vulnerabilidade']}")
-
-st.success("🔁 PDCA + Análise de Risco (com Localidade) integrados e totalmente editáveis!")
-
-# -------------------------------
-# SIDEBAR COM INFORMAÇÕES
+# SIDEBAR
 # -------------------------------
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/000000/security-checked--v1.png", width=80)
-    st.markdown("## 📋 Instruções Rápidas")
-    st.markdown("""
-    1. **Edite a tabela de risco** - Adicione/remova linhas, altere localidades, probabilidade e impacto
-    2. **Preencha o PDCA** - Use os riscos identificados como base para as ações
-    3. **Filtre por localidade** - Para focar em áreas específicas
-    4. **Exporte ou imprima** - Relatório completo com todos os dados
+    st.markdown("## 📋 Painel de Controle")
+    st.markdown("---")
     
-    ### 🎯 Dicas:
-    - Riscos **Altos** → Ação imediata no PDCA
-    - Riscos **Médios** → Plano de 30-60 dias
-    - Riscos **Baixos** → Monitoramento contínuo
+    # Resumo dos riscos
+    st.markdown("### 🎯 Resumo Riscos")
+    risco_alto = len(edited_risco[edited_risco["Nível do risco"] == "🔴 Alto"])
+    risco_medio = len(edited_risco[edited_risco["Nível do risco"] == "🟡 Médio"])
+    risco_baixo = len(edited_risco[edited_risco["Nível do risco"] == "🟢 Baixo"])
+    
+    st.markdown(f"""
+    - 🔴 **Alto:** {risco_alto}
+    - 🟡 **Médio:** {risco_medio}
+    - 🟢 **Baixo:** {risco_baixo}
     """)
     
+    # Localidades únicas
+    st.markdown("### 📍 Localidades")
+    for loc in edited_risco["Localidade"].unique():
+        st.markdown(f"- {loc}")
+    
     st.markdown("---")
-    st.caption(f"Última atualização: {datetime.now().strftime('%H:%M:%S')}")
+    st.markdown("### 💡 Dicas")
+    st.markdown("""
+    - **Altura dos campos:** 120px (padronizada)
+    - **Largura:** Colunas proporcionais
+    - **Alinhamento:** Perfeito entre linhas
+    - **Responsivo:** Adapta à tela
+    """)
+    
+    st.caption(f"🕐 {datetime.now().strftime('%H:%M:%S')}")
+
+st.success("✅ **PDCA perfeitamente alinhado e simétrico!** Todas as colunas têm largura igual e campos com altura padronizada.")
