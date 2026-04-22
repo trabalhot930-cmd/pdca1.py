@@ -127,7 +127,6 @@ def salvar_pdca_supabase(supabase, dados_pdca, usuario):
             fase_idx, linha_idx = key
             fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operação", "6. Avaliação", "7. Melhoria"]
             linhas = ["Objetivo Estratégico", "Ação Técnica", "Indicador KPI", "Evidência Status"]
-            
             supabase.table("pdca").insert({
                 "fase": fases[fase_idx],
                 "linha": linhas[linha_idx],
@@ -155,7 +154,6 @@ def carregar_pdca_supabase(supabase):
                 linha = item["linha"]
                 fases = ["1. Contexto", "2. Liderança", "3. Planejamento", "4. Suporte", "5. Operação", "6. Avaliação", "7. Melhoria"]
                 linhas = ["Objetivo Estratégico", "Ação Técnica", "Indicador KPI", "Evidência Status"]
-                
                 if fase in fases and linha in linhas:
                     i = fases.index(fase)
                     j = linhas.index(linha)
@@ -199,9 +197,6 @@ def fazer_logout():
     st.session_state.usuario = ""
     st.rerun()
 
-# ──────────────────────────────────────────────
-# FUNÇÃO HORA BRASIL (sem pytz)
-# ──────────────────────────────────────────────
 def obter_hora_brasil():
     utc_now = datetime.now(timezone.utc)
     brasilia_offset = timedelta(hours=-3)
@@ -236,10 +231,76 @@ st.markdown("""
 .c-red { color: #dc2626; }
 .c-green { color: #16a34a; }
 .c-yellow { color: #d97706; }
-.chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; height: 100%; }
 .chart-title { font-size: 14px; font-weight: 600; border-left: 3px solid #2563eb; padding-left: 10px; margin-bottom: 16px; }
-.pdca-header { background: #f8fafc; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 10px; border: 1px solid #e2e8f0; }
-.pdca-row-lbl { font-size: 12px; font-weight: 600; color: #475569; padding: 8px 0 4px; border-bottom: 1px solid #e2e8f0; margin: 8px 0 4px; }
+
+/* ── GRÁFICO ROSCA ── */
+.rosca-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.rosca-circle { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
+.rosca-inner {
+    position: absolute; width: 100%; height: 100%;
+    border-radius: 50%;
+}
+.rosca-hole {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70px; height: 70px;
+    background: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; z-index: 2;
+}
+.rosca-hole-num { font-size: 20px; font-weight: 700; color: #0f172a; }
+.rosca-hole-lbl { font-size: 10px; color: #64748b; }
+.rosca-legend { flex: 1; min-width: 140px; }
+.rosca-legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+.rosca-dot { width: 12px; height: 12px; border-radius: 3px; margin-right: 8px; flex-shrink: 0; }
+.rosca-name { flex: 1; font-size: 12px; color: #374151; }
+.rosca-val { font-size: 12px; font-weight: 600; color: #0f172a; }
+
+/* ── GRÁFICO BARRA HORIZONTAL ── */
+.bar-wrap { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 12px; color: #374151; width: 110px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; background: #f1f5f9; border-radius: 6px; height: 22px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; transition: width 0.5s ease; min-width: 2px; }
+.bar-fill-num { font-size: 11px; font-weight: 600; color: white; }
+.bar-pct { font-size: 11px; color: #64748b; width: 38px; text-align: right; flex-shrink: 0; }
+
+/* ── PDCA ── */
+.pdca-grid-outer {
+    width: 100%;
+    overflow-x: auto;
+}
+.pdca-grid {
+    display: grid;
+    grid-template-columns: 130px repeat(7, 1fr);
+    gap: 6px;
+    min-width: 900px;
+}
+.pdca-corner { background: transparent; }
+.pdca-phase-header {
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+.pdca-row-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    min-height: 95px;
+}
+.pdca-cell textarea {
+    width: 100% !important;
+    font-size: 12px !important;
+}
+
 .stButton > button { background: #0f172a !important; color: #fff !important; border-radius: 8px !important; }
 .status-ativo { color: #16a34a; font-weight: 600; }
 .status-inativo { color: #dc2626; font-weight: 600; }
@@ -255,7 +316,6 @@ if not verificar_login():
         st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
         st.markdown("<div class='page-title' style='text-align:center'>🛡️ SecureOps</div>", unsafe_allow_html=True)
         st.markdown("<div class='page-sub' style='text-align:center'>Sistema de Gestão de Segurança</div>", unsafe_allow_html=True)
-        
         with st.form("login_form"):
             username = st.text_input("Usuário", placeholder="Digite seu usuário")
             password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
@@ -266,7 +326,6 @@ if not verificar_login():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha inválidos.")
-        
         st.markdown("<p style='text-align:center;font-size:11px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
     st.stop()
 
@@ -283,55 +342,90 @@ def nivel_risco(prob, imp):
     else:
         return "🔴 Alto"
 
-def grafico_rosca(dados, titulo, cores):
-    if not dados or sum(dados.values()) == 0:
-        return "<div class='chart-card'>Sem dados</div>"
-    
-    total = sum(dados.values())
-    gradiente = []
-    angulo_atual = 0
-    for label, valor in dados.items():
-        percentual = (valor / total) * 360
-        cor = cores.get(label, "#ccc")
-        gradiente.append(f"{cor} {angulo_atual}deg {angulo_atual + percentual}deg")
-        angulo_atual += percentual
-    
-    legenda = ""
-    for label, valor in dados.items():
-        percentual = (valor / total) * 100
-        cor = cores.get(label, "#ccc")
-        legenda += f"""
-        <div style='display:flex; align-items:center; margin-bottom:8px;'>
-            <div style='width:12px; height:12px; background:{cor}; border-radius:2px; margin-right:8px;'></div>
-            <span style='flex:1; font-size:12px;'>{label}</span>
-            <span style='font-weight:600;'>{valor} ({percentual:.1f}%)</span>
-        </div>
-        """
-    
-    return f"""
-    <div class='chart-card'>
-        <div class='chart-title'>{titulo}</div>
-        <div style='display: flex; align-items: center; gap: 20px; flex-wrap: wrap;'>
-            <div style='position: relative; width: 150px; height: 150px;'>
-                <div style='position: absolute; width: 100%; height: 100%; border-radius: 50%; background: conic-gradient({', '.join(gradiente)});'></div>
-                <div style='position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column;'>
-                    <div style='font-size: 20px; font-weight: 700;'>{total}</div>
-                    <div style='font-size: 10px; color: #666;'>Total</div>
-                </div>
-            </div>
-            <div style='flex: 1; min-width: 150px;'>{legenda}</div>
-        </div>
-    </div>
-    """
-
 def mcard(num, lbl, cor):
     return f"<div class='mcard'><div class='mcard-num {cor}'>{num}</div><div class='mcard-lbl'>{lbl}</div></div>"
 
 def sec(t):
     st.markdown(f"<div class='sec-title'>{t}</div>", unsafe_allow_html=True)
 
+# ── Gráfico Rosca (HTML puro) ──
+def grafico_rosca(dados, titulo, cores):
+    if not dados or sum(dados.values()) == 0:
+        return f"<div class='chart-card'><div class='chart-title'>{titulo}</div><p style='color:#94a3b8;font-size:13px;'>Sem dados</p></div>"
+
+    total = sum(dados.values())
+    gradiente = []
+    angulo_atual = 0
+    for label, valor in dados.items():
+        pct = (valor / total) * 360
+        cor = cores.get(label, "#94a3b8")
+        gradiente.append(f"{cor} {angulo_atual:.1f}deg {angulo_atual + pct:.1f}deg")
+        angulo_atual += pct
+
+    legenda_items = ""
+    for label, valor in dados.items():
+        pct = (valor / total) * 100
+        cor = cores.get(label, "#94a3b8")
+        legenda_items += f"""
+        <div class='rosca-legend-item'>
+            <div class='rosca-dot' style='background:{cor};'></div>
+            <span class='rosca-name'>{label}</span>
+            <span class='rosca-val'>{valor}&nbsp;<span style='font-weight:400;color:#94a3b8;'>({pct:.0f}%)</span></span>
+        </div>"""
+
+    return f"""
+    <div class='chart-card'>
+        <div class='chart-title'>{titulo}</div>
+        <div class='rosca-wrap'>
+            <div class='rosca-circle'>
+                <div class='rosca-inner' style='background: conic-gradient({", ".join(gradiente)});'></div>
+                <div class='rosca-hole'>
+                    <div class='rosca-hole-num'>{total}</div>
+                    <div class='rosca-hole-lbl'>Total</div>
+                </div>
+            </div>
+            <div class='rosca-legend'>{legenda_items}</div>
+        </div>
+    </div>"""
+
+# ── Gráfico Barra Horizontal (HTML puro) ──
+def grafico_barra_horizontal(dados, titulo, cor_base="#2563eb"):
+    if not dados or sum(dados.values()) == 0:
+        return f"<div class='chart-card'><div class='chart-title'>{titulo}</div><p style='color:#94a3b8;font-size:13px;'>Sem dados</p></div>"
+
+    total = sum(dados.values())
+    max_val = max(dados.values())
+
+    # Paleta de variações da cor base
+    paleta = [
+        "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe",
+        "#1d4ed8", "#1e40af", "#1e3a8a"
+    ]
+
+    linhas = ""
+    for i, (label, valor) in enumerate(dados.items()):
+        pct_barra = (valor / max_val) * 100 if max_val > 0 else 0
+        pct_total = (valor / total) * 100
+        cor = paleta[i % len(paleta)]
+        linhas += f"""
+        <div class='bar-row'>
+            <div class='bar-label' title='{label}'>{label}</div>
+            <div class='bar-track'>
+                <div class='bar-fill' style='width:{pct_barra:.1f}%; background:{cor};'>
+                    <span class='bar-fill-num'>{valor}</span>
+                </div>
+            </div>
+            <div class='bar-pct'>{pct_total:.0f}%</div>
+        </div>"""
+
+    return f"""
+    <div class='chart-card'>
+        <div class='chart-title'>{titulo}</div>
+        <div class='bar-wrap'>{linhas}</div>
+    </div>"""
+
 # ──────────────────────────────────────────────
-# INICIALIZAR SUPABASE (SEM MENSAGEM)
+# INICIALIZAR SUPABASE
 # ──────────────────────────────────────────────
 supabase = init_supabase()
 
@@ -348,13 +442,10 @@ with st.sidebar:
     st.markdown("<div class='sb-lbl'>Resumo</div>", unsafe_allow_html=True)
     sidebar_ph = st.empty()
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
-    
-    # Hora do Brasil corrigida
     hora_br = obter_hora_brasil()
     st.markdown(f"📅 {hora_br.strftime('%d/%m/%Y')}", unsafe_allow_html=True)
     st.markdown(f"🕐 {hora_br.strftime('%H:%M:%S')}", unsafe_allow_html=True)
     st.markdown("<hr class='sb-div'>", unsafe_allow_html=True)
-    
     if st.button("🚪 Sair", use_container_width=True):
         fazer_logout()
 
@@ -367,7 +458,7 @@ st.markdown(f"""
 <div class='page-sub'>PDCA + Análise de Risco · {hora_br.strftime('%d/%m/%Y %H:%M')}</div>
 """, unsafe_allow_html=True)
 
-# Carregar dados do Supabase
+# ── Carregar dados do Supabase ──
 if supabase:
     dados_risco_carregado = carregar_riscos_supabase(supabase)
     dados_eq_carregado = carregar_equipamentos_supabase(supabase)
@@ -403,7 +494,9 @@ else:
         "Motivo": ["", "", "", "", "", "", ""],
     })
 
-# Abas
+# ──────────────────────────────────────────────
+# ABAS
+# ──────────────────────────────────────────────
 tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
 
 # ══════════════════════════════════════════════
@@ -432,7 +525,6 @@ with tab_dados:
 
     st.markdown("---")
     st.markdown("### 💾 Salvar no Supabase")
-    
     col_s1, col_s2 = st.columns(2)
     with col_s1:
         if st.button("☁️ Salvar Dados", use_container_width=True):
@@ -445,7 +537,6 @@ with tab_dados:
                     st.error("❌ Erro ao salvar")
             else:
                 st.error("❌ Supabase não conectado")
-    
     with col_s2:
         if st.button("📥 Exportar Excel", use_container_width=True):
             with pd.ExcelWriter(f"relatorio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx") as writer:
@@ -454,29 +545,28 @@ with tab_dados:
             st.success("Excel exportado!")
 
 # ══════════════════════════════════════════════
-# TAB GRÁFICOS (com filtro e gráficos em rosca)
+# TAB GRÁFICOS
+# 2 Roscas (linha 1) + 2 Barras Horizontais (linha 2)
 # ══════════════════════════════════════════════
 with tab_graficos:
     st.markdown("### 📊 Dashboard de Gráficos")
-    
-    # Filtros por localidade
+
+    # ── Filtros ──
     st.markdown("#### 🔍 Filtros")
     col_f1, col_f2 = st.columns(2)
     with col_f1:
         localidades_risco = ["Todas"] + sorted(edited_risco["Localidade"].unique().tolist())
         filtro_local_risco = st.selectbox("Filtrar Riscos por Localidade:", localidades_risco)
-    
     with col_f2:
         localidades_eq = ["Todas"] + sorted(edited_eq["Localidade"].unique().tolist())
         filtro_local_eq = st.selectbox("Filtrar Equipamentos por Localidade:", localidades_eq)
-    
-    # Aplicar filtros
+
     risco_filtrado = edited_risco if filtro_local_risco == "Todas" else edited_risco[edited_risco["Localidade"] == filtro_local_risco]
     eq_filtrado = edited_eq if filtro_local_eq == "Todas" else edited_eq[edited_eq["Localidade"] == filtro_local_eq]
-    
+
     st.markdown("---")
-    
-    # Métricas
+
+    # ── Métricas ──
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(mcard(len(risco_filtrado), "Total Riscos", "c-blue"), unsafe_allow_html=True)
@@ -488,91 +578,124 @@ with tab_graficos:
     with col4:
         ativos = len(eq_filtrado[eq_filtrado["Status"] == "Ativo"])
         st.markdown(mcard(ativos, "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
-    # Gráficos em rosca
-    col_g1, col_g2 = st.columns(2)
-    
-    with col_g1:
+
+    # ── Linha 1: 2 ROSCAS ──
+    st.markdown("##### 🍩 Distribuição por Categoria")
+    col_r1, col_r2 = st.columns(2)
+
+    with col_r1:
         risco_nivel = risco_filtrado["Nível do Risco"].value_counts().to_dict()
         cores_risco = {"🔴 Alto": "#dc2626", "🟡 Médio": "#d97706", "🟢 Baixo": "#16a34a"}
         st.markdown(grafico_rosca(risco_nivel, "Distribuição de Riscos", cores_risco), unsafe_allow_html=True)
-    
-    with col_g2:
+
+    with col_r2:
         status_eq = eq_filtrado["Status"].value_counts().to_dict()
-        cores_status = {"Ativo": "#16a34a", "Inativo": "#dc2626", "Em Manutenção": "#d97706", "Reserva": "#64748b"}
+        cores_status = {
+            "Ativo": "#16a34a",
+            "Inativo": "#dc2626",
+            "Em Manutenção": "#d97706",
+            "Reserva": "#64748b"
+        }
         st.markdown(grafico_rosca(status_eq, "Status dos Equipamentos", cores_status), unsafe_allow_html=True)
-    
-    col_g3, col_g4 = st.columns(2)
-    
-    with col_g3:
-        risco_local = risco_filtrado["Localidade"].value_counts().head(5).to_dict()
-        if risco_local:
-            st.markdown(grafico_rosca(risco_local, "Top Localidades com Riscos", {"default": "#2563eb"}), unsafe_allow_html=True)
-    
-    with col_g4:
+
+    st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
+
+    # ── Linha 2: 2 BARRAS HORIZONTAIS ──
+    st.markdown("##### 📊 Distribuição por Localidade e Tipo")
+    col_b1, col_b2 = st.columns(2)
+
+    with col_b1:
+        risco_local = risco_filtrado["Localidade"].value_counts().head(7).to_dict()
+        st.markdown(grafico_barra_horizontal(risco_local, "Riscos por Localidade", "#dc2626"), unsafe_allow_html=True)
+
+    with col_b2:
         tipo_eq = eq_filtrado["Tipo"].value_counts().to_dict()
-        cores_tipo = {"Segurança": "#2563eb", "Rede": "#7c3aed", "Servidor": "#0891b2", "Storage": "#059669", "Infraestrutura": "#d97706"}
-        st.markdown(grafico_rosca(tipo_eq, "Equipamentos por Tipo", cores_tipo), unsafe_allow_html=True)
+        st.markdown(grafico_barra_horizontal(tipo_eq, "Equipamentos por Tipo", "#2563eb"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-# TAB PDCA
+# TAB PDCA  — grade alinhada com cabeçalho fixo
 # ══════════════════════════════════════════════
 with tab_pdca:
     st.markdown("### 🔄 PDCA de Controle de Acesso")
-    
+
     fases = [
-        {"nome": "1. Contexto", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "2. Liderança", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "3. Planejamento", "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "4. Suporte", "fase": "DO", "cor": "#d97706"},
-        {"nome": "5. Operação", "fase": "DO", "cor": "#d97706"},
-        {"nome": "6. Avaliação", "fase": "CHECK", "cor": "#16a34a"},
-        {"nome": "7. Melhoria", "fase": "ACT", "cor": "#7c3aed"},
+        {"nome": "1. Contexto",      "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "2. Liderança",     "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "3. Planejamento",  "fase": "PLAN", "cor": "#2563eb"},
+        {"nome": "4. Suporte",       "fase": "DO",   "cor": "#d97706"},
+        {"nome": "5. Operação",      "fase": "DO",   "cor": "#d97706"},
+        {"nome": "6. Avaliação",     "fase": "CHECK","cor": "#16a34a"},
+        {"nome": "7. Melhoria",      "fase": "ACT",  "cor": "#7c3aed"},
     ]
-    
+
     linhas_pdca = [
-        "🎯 Objetivo Estratégico",
-        "⚙️ Ação Técnica",
-        "📊 Indicador KPI",
-        "🚩 Evidência Status",
+        ("🎯", "Objetivo Estratégico"),
+        ("⚙️", "Ação Técnica"),
+        ("📊", "Indicador KPI"),
+        ("🚩", "Evidência Status"),
     ]
-    
-    cols = st.columns(len(fases), gap="small")
+
     dados_pdca = {}
-    
     if dados_pdca_carregado:
         st.info("📀 PDCA carregado do Supabase")
         dados_pdca = dados_pdca_carregado
-    
-    for i, (col, fase) in enumerate(zip(cols, fases)):
-        with col:
+
+    # ── Cabeçalho (rótulo da linha + 7 fases) ──
+    header_cols = st.columns([1.4] + [1] * 7)
+    with header_cols[0]:
+        st.markdown(
+            "<div style='background:#f8fafc;border-radius:8px;padding:10px 8px;"
+            "text-align:center;border:1px solid #e2e8f0;"
+            "font-size:11px;font-weight:600;color:#94a3b8;'>Linha / Fase</div>",
+            unsafe_allow_html=True
+        )
+    for idx, fase in enumerate(fases):
+        with header_cols[idx + 1]:
             st.markdown(f"""
-            <div class='pdca-header' style='background:{fase["cor"]}10; border:1px solid {fase["cor"]}30;'>
-                <div style='font-size:13px; font-weight:700; color:{fase["cor"]};'>{fase["nome"]}</div>
-                <div style='font-size:10px; color:#64748b;'>{fase["fase"]}</div>
+            <div style='background:{fase["cor"]}12; border:1px solid {fase["cor"]}35;
+                        border-radius:8px; padding:10px 4px; text-align:center;'>
+                <div style='font-size:12px; font-weight:700; color:{fase["cor"]};'>{fase["nome"]}</div>
+                <div style='font-size:10px; color:#64748b; margin-top:2px;'>{fase["fase"]}</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            for j, linha in enumerate(linhas_pdca):
-                if i == 0:
-                    st.markdown(f"<div class='pdca-row-lbl'>{linha}</div>", unsafe_allow_html=True)
-                else:
-                    st.markdown("<div style='height:34px;'></div>", unsafe_allow_html=True)
-                
+
+    st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
+
+    # ── Linhas do PDCA ──
+    for j, (icone, nome_linha) in enumerate(linhas_pdca):
+        row_cols = st.columns([1.4] + [1] * 7)
+
+        # Rótulo da linha
+        with row_cols[0]:
+            st.markdown(f"""
+            <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
+                        padding:8px 10px; font-size:12px; font-weight:600; color:#475569;
+                        display:flex; align-items:center; gap:6px; min-height:95px;'>
+                <span style='font-size:16px;'>{icone}</span>
+                <span>{nome_linha}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Células de texto para cada fase
+        for i in range(len(fases)):
+            with row_cols[i + 1]:
                 key = f"pdca_{i}_{j}"
                 valor_padrao = dados_pdca.get((i, j), "")
                 dados_pdca[(i, j)] = st.text_area(
-                    label="", key=key,
-                    placeholder=f"Digite...",
+                    label="",
+                    key=key,
+                    placeholder="Digite...",
                     label_visibility="collapsed",
-                    height=85,
-                    value=valor_padrao
+                    height=95,
+                    value=valor_padrao,
                 )
-    
+
+        st.markdown("<div style='margin-bottom:4px;'></div>", unsafe_allow_html=True)
+
     st.markdown("---")
-    
+
     if st.button("💾 Salvar PDCA", use_container_width=True):
         if supabase:
             if salvar_pdca_supabase(supabase, dados_pdca, st.session_state.usuario):
@@ -587,9 +710,7 @@ with tab_pdca:
 # ══════════════════════════════════════════════
 with tab_historico:
     st.markdown("### 📜 Histórico de Alterações")
-    
     tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca"])
-    
     if supabase:
         tipo_valor = None if tipo_filtro == "Todos" else tipo_filtro
         df_hist = carregar_historico_supabase(supabase, tipo_valor)
@@ -601,10 +722,10 @@ with tab_historico:
         st.warning("Conecte ao Supabase para ver o histórico")
 
 # ──────────────────────────────────────────────
-# SIDEBAR ATUALIZADA
+# SIDEBAR — RESUMO ATUALIZADO
 # ──────────────────────────────────────────────
 with sidebar_ph:
-    alto = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
+    alto  = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
     medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
     baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
     st.markdown(f"""
