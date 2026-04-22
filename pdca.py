@@ -11,6 +11,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Remove a faixa branca do topo (header nativo do Streamlit)
+st.markdown("""
+<style>
+#MainMenu { visibility: hidden; }
+[data-testid="stHeader"] { display: none !important; height: 0 !important; }
+[data-testid="stToolbar"] { display: none !important; }
+.block-container { padding-top: 0.5rem !important; }
+</style>
+""", unsafe_allow_html=True)
+
 # ──────────────────────────────────────────────
 # CONFIGURAÇÃO DO SUPABASE
 # ──────────────────────────────────────────────
@@ -605,7 +615,7 @@ with tab_graficos:
 # TAB PDCA — colunas verticais por fase
 # ══════════════════════════════════════════════
 with tab_pdca:
-    st.markdown("### 🔄 PDCA de Controle de Acesso")
+    st.markdown("### 🔄 PDCA de Gestão de Segurança")
 
     fases = [
         {"nome": "1. Contexto",      "fase": "PLAN",  "cor": "#2563eb"},
