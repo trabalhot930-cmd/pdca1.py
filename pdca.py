@@ -11,12 +11,23 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Remove a faixa branca do topo (header nativo do Streamlit)
+# Remove header, toolbar, footer e deploy button do Streamlit
 st.markdown("""
 <style>
-#MainMenu { visibility: hidden; }
-[data-testid="stHeader"] { display: none !important; height: 0 !important; }
+#MainMenu { visibility: hidden !important; }
+header[data-testid="stHeader"] { display: none !important; height: 0 !important; }
 [data-testid="stToolbar"] { display: none !important; }
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stStatusWidget"] { display: none !important; }
+footer { visibility: hidden !important; height: 0 !important; }
+footer:after { display: none !important; }
+.viewerBadge_container__1QSob { display: none !important; }
+.viewerBadge_link__1S137 { display: none !important; }
+#stDecoration { display: none !important; }
+.styles_viewerBadge__CvC9N { display: none !important; }
+[class*="viewerBadge"] { display: none !important; }
+[class*="ActionButton"] { display: none !important; }
+[data-testid="baseButton-headerNoPadding"] { display: none !important; }
 .block-container { padding-top: 0.5rem !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -334,7 +345,7 @@ if not verificar_login():
                     st.rerun()
                 else:
                     st.error("Usuário ou senha inválidos.")
-        st.markdown("<p style='text-align:center;font-size:11px;'>Usuário: Juan | Senha: Ju@n1990</p>", unsafe_allow_html=True)
+
     st.stop()
 
 # ──────────────────────────────────────────────
