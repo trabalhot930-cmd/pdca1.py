@@ -257,14 +257,12 @@ st.markdown("""
 .rosca-name { flex: 1; font-size: 12px; color: #374151; }
 .rosca-val { font-size: 12px; font-weight: 600; color: #0f172a; }
 
-/* ── GRÁFICO BARRA HORIZONTAL ── */
-.bar-wrap { display: flex; flex-direction: column; gap: 10px; }
-.bar-row { display: flex; align-items: center; gap: 10px; }
-.bar-label { font-size: 12px; color: #374151; width: 110px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-track { flex: 1; background: #f1f5f9; border-radius: 6px; height: 22px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; transition: width 0.5s ease; min-width: 2px; }
-.bar-fill-num { font-size: 11px; font-weight: 600; color: white; }
-.bar-pct { font-size: 11px; color: #64748b; width: 38px; text-align: right; flex-shrink: 0; }
+/* ── GRÁFICO BARRA VERTICAL ── */
+.vchart-wrap { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-bottom: 4px; }
+.vchart-col { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+.vchart-val { font-size: 11px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+.vchart-bar { width: 100%; border-radius: 6px 6px 0 0; min-height: 4px; }
+.vchart-lbl { font-size: 10px; color: #64748b; margin-top: 6px; text-align: center; word-break: break-word; max-width: 100%; line-height: 1.2; }
 
 /* ── PDCA ── */
 .pdca-grid-outer {
@@ -388,40 +386,29 @@ def grafico_rosca(dados, titulo, cores):
         </div>
     </div>"""
 
-# ── Gráfico Barra Horizontal (HTML puro) ──
-def grafico_barra_horizontal(dados, titulo, cor_base="#2563eb"):
+# ── Gráfico Barra Vertical (HTML puro) ──
+def grafico_barra_vertical(dados, titulo):
     if not dados or sum(dados.values()) == 0:
         return f"<div class='chart-card'><div class='chart-title'>{titulo}</div><p style='color:#94a3b8;font-size:13px;'>Sem dados</p></div>"
 
-    total = sum(dados.values())
     max_val = max(dados.values())
+    paleta = ["#2563eb","#3b82f6","#60a5fa","#dc2626","#d97706","#16a34a","#7c3aed","#0891b2","#059669"]
 
-    # Paleta de variações da cor base
-    paleta = [
-        "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe",
-        "#1d4ed8", "#1e40af", "#1e3a8a"
-    ]
-
-    linhas = ""
+    colunas = ""
     for i, (label, valor) in enumerate(dados.items()):
-        pct_barra = (valor / max_val) * 100 if max_val > 0 else 0
-        pct_total = (valor / total) * 100
+        pct_altura = (valor / max_val) * 100 if max_val > 0 else 0
         cor = paleta[i % len(paleta)]
-        linhas += f"""
-        <div class='bar-row'>
-            <div class='bar-label' title='{label}'>{label}</div>
-            <div class='bar-track'>
-                <div class='bar-fill' style='width:{pct_barra:.1f}%; background:{cor};'>
-                    <span class='bar-fill-num'>{valor}</span>
-                </div>
-            </div>
-            <div class='bar-pct'>{pct_total:.0f}%</div>
+        colunas += f"""
+        <div class='vchart-col'>
+            <div class='vchart-val'>{valor}</div>
+            <div class='vchart-bar' style='height:{pct_altura:.1f}%; background:{cor};'></div>
+            <div class='vchart-lbl'>{label}</div>
         </div>"""
 
     return f"""
     <div class='chart-card'>
         <div class='chart-title'>{titulo}</div>
-        <div class='bar-wrap'>{linhas}</div>
+        <div class='vchart-wrap'>{colunas}</div>
     </div>"""
 
 # ──────────────────────────────────────────────
@@ -602,32 +589,32 @@ with tab_graficos:
 
     st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
 
-    # ── Linha 2: 2 BARRAS HORIZONTAIS ──
+    # ── Linha 2: 2 BARRAS VERTICAIS ──
     st.markdown("##### 📊 Distribuição por Localidade e Tipo")
     col_b1, col_b2 = st.columns(2)
 
     with col_b1:
         risco_local = risco_filtrado["Localidade"].value_counts().head(7).to_dict()
-        st.markdown(grafico_barra_horizontal(risco_local, "Riscos por Localidade", "#dc2626"), unsafe_allow_html=True)
+        st.markdown(grafico_barra_vertical(risco_local, "Riscos por Localidade"), unsafe_allow_html=True)
 
     with col_b2:
         tipo_eq = eq_filtrado["Tipo"].value_counts().to_dict()
-        st.markdown(grafico_barra_horizontal(tipo_eq, "Equipamentos por Tipo", "#2563eb"), unsafe_allow_html=True)
+        st.markdown(grafico_barra_vertical(tipo_eq, "Equipamentos por Tipo"), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-# TAB PDCA  — grade alinhada com cabeçalho fixo
+# TAB PDCA — colunas verticais por fase
 # ══════════════════════════════════════════════
 with tab_pdca:
     st.markdown("### 🔄 PDCA de Controle de Acesso")
 
     fases = [
-        {"nome": "1. Contexto",      "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "2. Liderança",     "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "3. Planejamento",  "fase": "PLAN", "cor": "#2563eb"},
-        {"nome": "4. Suporte",       "fase": "DO",   "cor": "#d97706"},
-        {"nome": "5. Operação",      "fase": "DO",   "cor": "#d97706"},
-        {"nome": "6. Avaliação",     "fase": "CHECK","cor": "#16a34a"},
-        {"nome": "7. Melhoria",      "fase": "ACT",  "cor": "#7c3aed"},
+        {"nome": "1. Contexto",      "fase": "PLAN",  "cor": "#2563eb"},
+        {"nome": "2. Liderança",     "fase": "PLAN",  "cor": "#2563eb"},
+        {"nome": "3. Planejamento",  "fase": "PLAN",  "cor": "#2563eb"},
+        {"nome": "4. Suporte",       "fase": "DO",    "cor": "#d97706"},
+        {"nome": "5. Operação",      "fase": "DO",    "cor": "#d97706"},
+        {"nome": "6. Avaliação",     "fase": "CHECK", "cor": "#16a34a"},
+        {"nome": "7. Melhoria",      "fase": "ACT",   "cor": "#7c3aed"},
     ]
 
     linhas_pdca = [
@@ -642,45 +629,31 @@ with tab_pdca:
         st.info("📀 PDCA carregado do Supabase")
         dados_pdca = dados_pdca_carregado
 
-    # ── Cabeçalho (rótulo da linha + 7 fases) ──
-    header_cols = st.columns([1.4] + [1] * 7)
-    with header_cols[0]:
-        st.markdown(
-            "<div style='background:#f8fafc;border-radius:8px;padding:10px 8px;"
-            "text-align:center;border:1px solid #e2e8f0;"
-            "font-size:11px;font-weight:600;color:#94a3b8;'>Linha / Fase</div>",
-            unsafe_allow_html=True
-        )
-    for idx, fase in enumerate(fases):
-        with header_cols[idx + 1]:
+    # ── 7 colunas verticais, uma por fase ──
+    fase_cols = st.columns(7, gap="small")
+
+    for i, (col, fase) in enumerate(zip(fase_cols, fases)):
+        with col:
+            # Cabeçalho da fase
             st.markdown(f"""
-            <div style='background:{fase["cor"]}12; border:1px solid {fase["cor"]}35;
-                        border-radius:8px; padding:10px 4px; text-align:center;'>
-                <div style='font-size:12px; font-weight:700; color:{fase["cor"]};'>{fase["nome"]}</div>
-                <div style='font-size:10px; color:#64748b; margin-top:2px;'>{fase["fase"]}</div>
+            <div style='background:{fase["cor"]}15; border:2px solid {fase["cor"]}40;
+                        border-radius:10px; padding:12px 6px; text-align:center;
+                        margin-bottom:10px;'>
+                <div style='font-size:11px; font-weight:800; color:{fase["cor"]};
+                            letter-spacing:0.3px;'>{fase["nome"]}</div>
+                <div style='font-size:9px; font-weight:600; color:#94a3b8;
+                            margin-top:3px; text-transform:uppercase;
+                            letter-spacing:1px;'>{fase["fase"]}</div>
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
-
-    # ── Linhas do PDCA ──
-    for j, (icone, nome_linha) in enumerate(linhas_pdca):
-        row_cols = st.columns([1.4] + [1] * 7)
-
-        # Rótulo da linha
-        with row_cols[0]:
-            st.markdown(f"""
-            <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;
-                        padding:8px 10px; font-size:12px; font-weight:600; color:#475569;
-                        display:flex; align-items:center; gap:6px; min-height:95px;'>
-                <span style='font-size:16px;'>{icone}</span>
-                <span>{nome_linha}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-        # Células de texto para cada fase
-        for i in range(len(fases)):
-            with row_cols[i + 1]:
+            # 4 inputs empilhados verticalmente
+            for j, (icone, nome_linha) in enumerate(linhas_pdca):
+                st.markdown(
+                    f"<div style='font-size:10px; font-weight:600; color:#64748b; "
+                    f"margin-bottom:2px;'>{icone} {nome_linha}</div>",
+                    unsafe_allow_html=True
+                )
                 key = f"pdca_{i}_{j}"
                 valor_padrao = dados_pdca.get((i, j), "")
                 dados_pdca[(i, j)] = st.text_area(
@@ -688,11 +661,9 @@ with tab_pdca:
                     key=key,
                     placeholder="Digite...",
                     label_visibility="collapsed",
-                    height=95,
+                    height=90,
                     value=valor_padrao,
                 )
-
-        st.markdown("<div style='margin-bottom:4px;'></div>", unsafe_allow_html=True)
 
     st.markdown("---")
 
