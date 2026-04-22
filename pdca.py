@@ -45,7 +45,59 @@ def init_supabase():
         return None
 
 # ──────────────────────────────────────────────
-# FUNÇÕES DO SUPABASE
+# FUNÇÕES DO SUPABASE - CONTROLES DE SEGURANÇA
+# ──────────────────────────────────────────────
+def salvar_controles_supabase(supabase, df_controles, usuario):
+    if not supabase:
+        return False
+    try:
+        supabase.table("controles_seguranca").delete().neq("id", 0).execute()
+        for _, row in df_controles.iterrows():
+            supabase.table("controles_seguranca").insert({
+                "controle": row["Controle"],
+                "categoria": row["Categoria"],
+                "descricao": row["Descrição"],
+                "tipo_controle": row["Tipo de Controle"],
+                "status": row["Status"],
+                "data_implementacao": row.get("Data Implementação", ""),
+                "responsavel": row.get("Responsável", ""),
+                "efetividade": row.get("Efetividade", ""),
+                "usuario": usuario
+            }).execute()
+        supabase.table("historico_seguranca").insert({
+            "tipo": "controles",
+            "dados": json.dumps(df_controles.to_dict('records')),
+            "usuario": usuario
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar controles: {e}")
+        return False
+
+def carregar_controles_supabase(supabase):
+    if not supabase:
+        return None
+    try:
+        response = supabase.table("controles_seguranca").select("*").execute()
+        if response.data:
+            df = pd.DataFrame(response.data)
+            df = df.rename(columns={
+                "controle": "Controle",
+                "categoria": "Categoria",
+                "descricao": "Descrição",
+                "tipo_controle": "Tipo de Controle",
+                "status": "Status",
+                "data_implementacao": "Data Implementação",
+                "responsavel": "Responsável",
+                "efetividade": "Efetividade"
+            })
+            return df[["Controle", "Categoria", "Descrição", "Tipo de Controle", "Status", "Data Implementação", "Responsável", "Efetividade"]]
+        return None
+    except:
+        return None
+
+# ──────────────────────────────────────────────
+# FUNÇÕES DO SUPABASE - RISCOS
 # ──────────────────────────────────────────────
 def salvar_riscos_supabase(supabase, df_riscos, usuario):
     if not supabase:
@@ -252,6 +304,7 @@ st.markdown("""
 .c-red { color: #dc2626; }
 .c-green { color: #16a34a; }
 .c-yellow { color: #d97706; }
+.c-purple { color: #7c3aed; }
 .chart-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px; height: 100%; }
 .chart-title { font-size: 14px; font-weight: 600; border-left: 3px solid #2563eb; padding-left: 10px; margin-bottom: 16px; }
 
@@ -323,6 +376,10 @@ st.markdown("""
 .stButton > button { background: #0f172a !important; color: #fff !important; border-radius: 8px !important; }
 .status-ativo { color: #16a34a; font-weight: 600; }
 .status-inativo { color: #dc2626; font-weight: 600; }
+.status-implantado { color: #16a34a; font-weight: 600; }
+.status-parcial { color: #d97706; font-weight: 600; }
+.status-pendente { color: #dc2626; font-weight: 600; }
+.status-planejado { color: #2563eb; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -463,7 +520,7 @@ with st.sidebar:
 hora_br = obter_hora_brasil()
 st.markdown(f"""
 <div class='page-title'>SecureOps - Gestão de Segurança</div>
-<div class='page-sub'>PDCA + Análise de Risco · {hora_br.strftime('%d/%m/%Y %H:%M')}</div>
+<div class='page-sub'>PDCA + Análise de Risco + Controles · {hora_br.strftime('%d/%m/%Y %H:%M')}</div>
 """, unsafe_allow_html=True)
 
 # ── Carregar dados do Supabase ──
@@ -471,10 +528,12 @@ if supabase:
     dados_risco_carregado = carregar_riscos_supabase(supabase)
     dados_eq_carregado = carregar_equipamentos_supabase(supabase)
     dados_pdca_carregado = carregar_pdca_supabase(supabase)
+    dados_controles_carregado = carregar_controles_supabase(supabase)
 else:
     dados_risco_carregado = None
     dados_eq_carregado = None
     dados_pdca_carregado = {}
+    dados_controles_carregado = None
 
 if dados_risco_carregado is not None and not dados_risco_carregado.empty:
     edited_risco = dados_risco_carregado
@@ -502,10 +561,25 @@ else:
         "Motivo": ["", "", "", "", "", "", ""],
     })
 
+# ── Dados de Controles de Segurança (Novo) ──
+if dados_controles_carregado is not None and not dados_controles_carregado.empty:
+    edited_controles = dados_controles_carregado
+else:
+    edited_controles = pd.DataFrame({
+        "Controle": ["Controle de Acesso", "Antivírus Centralizado", "Backup Automatizado", "Firewall de Rede", "Monitoramento 24/7", "Política de Senhas", "DLP", "SIEM"],
+        "Categoria": ["Acesso", "Malware", "Backup", "Rede", "Monitoramento", "Governança", "Data Loss", "SIEM"],
+        "Descrição": ["Controle de acesso baseado em RBAC", "Antivírus com atualização automática", "Backup diário com retenção de 30 dias", "Firewall com inspeção de pacotes", "Monitoramento contínuo de ativos", "Política de senhas fortes e troca mensal", "Prevenção contra vazamento de dados", "Correlação de eventos de segurança"],
+        "Tipo de Controle": ["Preventivo", "Detectivo", "Corretivo", "Preventivo", "Detectivo", "Preventivo", "Preventivo", "Detectivo"],
+        "Status": ["Implantado", "Implantado", "Implantado", "Implantado", "Parcial", "Pendente", "Planejado", "Planejado"],
+        "Data Implementação": ["2024-01-15", "2024-01-10", "2024-01-20", "2024-02-01", "2024-03-10", "", "", ""],
+        "Responsável": ["TI", "TI", "DBA", "Rede", "SecOps", "Governança", "SecOps", "SecOps"],
+        "Efetividade": ["95%", "90%", "100%", "85%", "60%", "", "", ""],
+    })
+
 # ──────────────────────────────────────────────
-# ABAS
+# ABAS (NOVA ABA DE CONTROLES)
 # ──────────────────────────────────────────────
-tab_dados, tab_graficos, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔄 PDCA", "📜 Histórico"])
+tab_dados, tab_graficos, tab_controles, tab_pdca, tab_historico = st.tabs(["📋 Dados", "📊 Gráficos", "🔒 Controles", "🔄 PDCA", "📜 Histórico"])
 
 # ══════════════════════════════════════════════
 # TAB DADOS
@@ -550,32 +624,36 @@ with tab_dados:
             with pd.ExcelWriter(f"relatorio_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx") as writer:
                 edited_risco.to_excel(writer, sheet_name="Riscos", index=False)
                 edited_eq.to_excel(writer, sheet_name="Equipamentos", index=False)
+                edited_controles.to_excel(writer, sheet_name="Controles", index=False)
             st.success("Excel exportado!")
 
 # ══════════════════════════════════════════════
 # TAB GRÁFICOS
-# 2 Roscas (linha 1) + 2 Barras Horizontais (linha 2)
 # ══════════════════════════════════════════════
 with tab_graficos:
     st.markdown("### 📊 Dashboard de Gráficos")
 
     # ── Filtros ──
     st.markdown("#### 🔍 Filtros")
-    col_f1, col_f2 = st.columns(2)
+    col_f1, col_f2, col_f3 = st.columns(3)
     with col_f1:
         localidades_risco = ["Todas"] + sorted(edited_risco["Localidade"].unique().tolist())
         filtro_local_risco = st.selectbox("Filtrar Riscos por Localidade:", localidades_risco)
     with col_f2:
         localidades_eq = ["Todas"] + sorted(edited_eq["Localidade"].unique().tolist())
         filtro_local_eq = st.selectbox("Filtrar Equipamentos por Localidade:", localidades_eq)
+    with col_f3:
+        categorias_ctrl = ["Todas"] + sorted(edited_controles["Categoria"].unique().tolist())
+        filtro_categoria_ctrl = st.selectbox("Filtrar Controles por Categoria:", categorias_ctrl)
 
     risco_filtrado = edited_risco if filtro_local_risco == "Todas" else edited_risco[edited_risco["Localidade"] == filtro_local_risco]
     eq_filtrado = edited_eq if filtro_local_eq == "Todas" else edited_eq[edited_eq["Localidade"] == filtro_local_eq]
+    controles_filtrado = edited_controles if filtro_categoria_ctrl == "Todas" else edited_controles[edited_controles["Categoria"] == filtro_categoria_ctrl]
 
     st.markdown("---")
 
     # ── Métricas ──
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.markdown(mcard(len(risco_filtrado), "Total Riscos", "c-blue"), unsafe_allow_html=True)
     with col2:
@@ -586,12 +664,14 @@ with tab_graficos:
     with col4:
         ativos = len(eq_filtrado[eq_filtrado["Status"] == "Ativo"])
         st.markdown(mcard(ativos, "Equipamentos Ativos", "c-green"), unsafe_allow_html=True)
+    with col5:
+        st.markdown(mcard(len(controles_filtrado), "Controles", "c-purple"), unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # ── Linha 1: 2 ROSCAS ──
+    # ── Linha 1: 3 ROSCAS ──
     st.markdown("##### 🍩 Distribuição por Categoria")
-    col_r1, col_r2 = st.columns(2)
+    col_r1, col_r2, col_r3 = st.columns(3)
 
     with col_r1:
         risco_nivel = risco_filtrado["Nível do Risco"].value_counts().to_dict()
@@ -608,22 +688,131 @@ with tab_graficos:
         }
         st.markdown(grafico_rosca(status_eq, "Status dos Equipamentos", cores_status), unsafe_allow_html=True)
 
+    with col_r3:
+        status_ctrl = controles_filtrado["Status"].value_counts().to_dict()
+        cores_status_ctrl = {
+            "Implantado": "#16a34a",
+            "Parcial": "#d97706",
+            "Pendente": "#dc2626",
+            "Planejado": "#2563eb"
+        }
+        st.markdown(grafico_rosca(status_ctrl, "Status dos Controles", cores_status_ctrl), unsafe_allow_html=True)
+
     st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
 
-    # ── Linha 2: 2 BARRAS VERTICAIS ──
-    st.markdown("##### 📊 Distribuição por Localidade e Tipo")
-    col_b1, col_b2 = st.columns(2)
+    # ── Linha 2: 3 BARRAS VERTICAIS ──
+    st.markdown("##### 📊 Distribuição por Localidade, Tipo e Categoria")
+    col_b1, col_b2, col_b3 = st.columns(3)
 
     with col_b1:
-        risco_local = risco_filtrado["Localidade"].value_counts().head(7).to_dict()
+        risco_local = risco_filtrado["Localidade"].value_counts().head(5).to_dict()
         st.markdown(grafico_barra_vertical(risco_local, "Riscos por Localidade"), unsafe_allow_html=True)
 
     with col_b2:
         tipo_eq = eq_filtrado["Tipo"].value_counts().to_dict()
         st.markdown(grafico_barra_vertical(tipo_eq, "Equipamentos por Tipo"), unsafe_allow_html=True)
 
+    with col_b3:
+        tipo_ctrl = controles_filtrado["Tipo de Controle"].value_counts().to_dict()
+        st.markdown(grafico_barra_vertical(tipo_ctrl, "Controles por Tipo"), unsafe_allow_html=True)
+
 # ══════════════════════════════════════════════
-# TAB PDCA — colunas verticais por fase
+# TAB CONTROLES DE SEGURANÇA (NOVA)
+# ══════════════════════════════════════════════
+with tab_controles:
+    sec("🔒 Controles de Segurança")
+    
+    st.markdown("""
+    <div style="background:#eef2ff; padding:12px 16px; border-radius:10px; margin-bottom:16px; border-left:4px solid #2563eb;">
+        <span style="font-size:13px; color:#1e40af;">📌 Os controles de segurança são medidas ou ações para evitar, 
+        combater ou minimizar a perda ou indisponibilidade de ativos de informação.</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    edited_controles = st.data_editor(
+        edited_controles, 
+        use_container_width=True, 
+        num_rows="dynamic",
+        column_config={
+            "Categoria": st.column_config.SelectboxColumn(
+                options=["Acesso", "Malware", "Backup", "Rede", "Monitoramento", "Governança", "Data Loss", "SIEM", "Física", "Criptografia"]
+            ),
+            "Tipo de Controle": st.column_config.SelectboxColumn(
+                options=["Preventivo", "Detectivo", "Corretivo", "Compensatório", "Deterrente"]
+            ),
+            "Status": st.column_config.SelectboxColumn(
+                options=["Implantado", "Parcial", "Pendente", "Planejado", "Cancelado"]
+            ),
+            "Efetividade": st.column_config.TextColumn(help="Percentual de efetividade ou descrição"),
+        },
+        hide_index=True,
+    )
+    
+    st.markdown("---")
+    
+    # Matriz de Riscos vs Controles
+    st.markdown("### 🎯 Matriz de Relação Risco x Controle")
+    st.info("Relacione cada controle com os riscos que ele mitiga")
+    
+    # Criar matriz interativa
+    riscos_lista = edited_risco["Ativo"].unique().tolist()[:5]  # Limitar para visualização
+    controles_lista = edited_controles["Controle"].tolist()[:5]
+    
+    matriz_data = []
+    for controle in controles_lista:
+        row = {"Controle": controle}
+        for risco in riscos_lista:
+            row[risco] = False
+        matriz_data.append(row)
+    
+    matriz_df = pd.DataFrame(matriz_data)
+    
+    edited_matriz = st.data_editor(
+        matriz_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={col: st.column_config.CheckboxColumn() for col in riscos_lista}
+    )
+    
+    st.markdown("---")
+    
+    # Resumo de Cobertura
+    st.markdown("### 📈 Resumo dos Controles")
+    
+    col_ct1, col_ct2, col_ct3, col_ct4 = st.columns(4)
+    
+    with col_ct1:
+        implantados = len(edited_controles[edited_controles["Status"] == "Implantado"])
+        st.markdown(mcard(implantados, "Controles Implantados", "c-green"), unsafe_allow_html=True)
+    
+    with col_ct2:
+        pendentes = len(edited_controles[edited_controles["Status"] == "Pendente"])
+        st.markdown(mcard(pendentes, "Controles Pendentes", "c-red"), unsafe_allow_html=True)
+    
+    with col_ct3:
+        preventivos = len(edited_controles[edited_controles["Tipo de Controle"] == "Preventivo"])
+        st.markdown(mcard(preventivos, "Controles Preventivos", "c-blue"), unsafe_allow_html=True)
+    
+    with col_ct4:
+        detectivos = len(edited_controles[edited_controles["Tipo de Controle"] == "Detectivo"])
+        st.markdown(mcard(detectivos, "Controles Detectivos", "c-yellow"), unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Botão Salvar Controles
+    col_sv1, col_sv2 = st.columns(2)
+    with col_sv1:
+        if st.button("💾 Salvar Controles no Supabase", use_container_width=True):
+            if supabase:
+                if salvar_controles_supabase(supabase, edited_controles, st.session_state.usuario):
+                    st.success("✅ Controles de segurança salvos na nuvem!")
+                else:
+                    st.error("❌ Erro ao salvar controles")
+            else:
+                st.error("❌ Supabase não conectado")
+
+# ══════════════════════════════════════════════
+# TAB PDCA
 # ══════════════════════════════════════════════
 with tab_pdca:
     st.markdown("### 🔄 PDCA de Gestão de Segurança")
@@ -702,7 +891,7 @@ with tab_pdca:
 # ══════════════════════════════════════════════
 with tab_historico:
     st.markdown("### 📜 Histórico de Alterações")
-    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca"])
+    tipo_filtro = st.selectbox("Filtrar:", ["Todos", "analise_risco", "equipamentos", "pdca", "controles"])
     if supabase:
         tipo_valor = None if tipo_filtro == "Todos" else tipo_filtro
         df_hist = carregar_historico_supabase(supabase, tipo_valor)
@@ -720,8 +909,13 @@ with sidebar_ph:
     alto  = len(edited_risco[edited_risco["Nível do Risco"] == "🔴 Alto"])
     medio = len(edited_risco[edited_risco["Nível do Risco"] == "🟡 Médio"])
     baixo = len(edited_risco[edited_risco["Nível do Risco"] == "🟢 Baixo"])
+    controles_total = len(edited_controles)
+    controles_implantados = len(edited_controles[edited_controles["Status"] == "Implantado"])
+    
     st.markdown(f"""
-    <div class='sb-badge sb-red'>🔴 Alto <span class='sb-num'>{alto}</span></div>
-    <div class='sb-badge sb-yellow'>🟡 Médio <span class='sb-num'>{medio}</span></div>
-    <div class='sb-badge sb-green'>🟢 Baixo <span class='sb-num'>{baixo}</span></div>
+    <div class='sb-badge sb-red'>🔴 Riscos Altos <span class='sb-num'>{alto}</span></div>
+    <div class='sb-badge sb-yellow'>🟡 Riscos Médios <span class='sb-num'>{medio}</span></div>
+    <div class='sb-badge sb-green'>🟢 Riscos Baixos <span class='sb-num'>{baixo}</span></div>
+    <div class='sb-badge' style='background:#e0e7ff; color:#4338ca;'>🔒 Controles <span class='sb-num'>{controles_total}</span></div>
+    <div class='sb-badge' style='background:#dcfce7; color:#16a34a;'>✅ Implantados <span class='sb-num'>{controles_implantados}</span></div>
     """, unsafe_allow_html=True)
